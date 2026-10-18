@@ -2,11 +2,12 @@ import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import { DeleteEntry, Input, PhotoPair, ReminderSheet, finish } from '../components/form';
+import { DeleteEntry, Input, PhotoSet, ProviderPicker, ReminderSheet, finish } from '../components/form';
 import type { RemindTarget } from '../components/form';
 import { BackHeader, Button, Card, T, soon } from '../components/ui';
 import { KIND_INFO } from '../lib/game';
-import { fieldsFor, formatDate, parseDate } from '../lib/health';
+import { FICHAS, fichaKind, formatDate, parseDate } from '../lib/health';
+import { foodStatus } from '../lib/game';
 import { useStore } from '../lib/store';
 import { colors } from '../lib/theme';
 
@@ -16,16 +17,18 @@ export default function Ficha() {
   const params = useLocalSearchParams<{ tipo?: string; id?: string }>();
   const { data, addEntry, updateEntry, removeEntry } = useStore();
   const editing = data.entries.find((e) => e.id === params.id);
-  const kind = editing?.kind ?? (params.tipo === 'medicamento' ? 'medicamento' : 'vacuna');
-  const fields = fieldsFor(kind);
+  const kind = fichaKind(editing?.kind ?? params.tipo);
+  const ficha = FICHAS[kind];
+  const fields = ficha.fields;
   const vaccine = kind === 'vacuna';
+  const food = kind === 'alimento';
   const pet = data.pet!;
 
-  const [values, setValues] = useState<Record<string, string>>(() => {
+  const [values, setValues] = useState<Record<string, string>>((): Record<string, string> => {
     if (editing?.fields) return { ...editing.fields };
     // Registros viejos solo tenían una nota: se usa como nombre.
-    if (editing) return { nombre: editing.note ?? '', [vaccine ? 'fecha' : 'inicio']: formatDate(editing.at) };
-    return {};
+    if (editing) return { nombre: editing.note ?? '', [ficha.dateKey]: formatDate(editing.at) };
+    return food ? { comidasDia: '2' } : {};
   });
   const [photos, setPhotos] = useState<string[]>(editing?.photos ?? []);
   const [step, setStep] = useState<'datos' | 'revisar'>('datos');
@@ -37,11 +40,11 @@ export default function Ficha() {
   const val = (k: string) => (values[k] ?? '').trim();
   const missing = fields.filter((f) => f.required && (!val(f.key) || (f.date && parseDate(val(f.key)) === null)));
   const badDates = fields.filter((f) => f.date && val(f.key) && parseDate(val(f.key)) === null);
-  const title = editing ? `Editar ${KIND_INFO[kind].label.toLowerCase()}` : vaccine ? 'Nueva vacuna' : 'Nuevo medicamento';
+  const title = editing ? `Editar ${KIND_INFO[kind].label.toLowerCase()}` : ficha.newTitle;
 
   const save = () => {
     const clean = Object.fromEntries(Object.entries(values).map(([k, v]) => [k, v.trim()]).filter(([, v]) => v));
-    const day = parseDate(val(vaccine ? 'fecha' : 'inicio')) ?? Date.now();
+    const day = parseDate(val(ficha.dateKey)) ?? Date.now();
     const sameDay = new Date(day).toDateString() === new Date().toDateString();
     const at = sameDay ? Date.now() : day + 12 * 3600000;
     const entry = { fields: clean, photos: photos.filter(Boolean), note: clean.nombre, at };
@@ -57,8 +60,13 @@ export default function Ficha() {
       .filter((f) => f.remind)
       .map((f) => ({ title: `${f.remind}: ${clean.nombre}`, at: parseDate(clean[f.key]) ?? 0 }))
       .filter((t) => t.at > Date.now());
+    if (food) {
+      // Fecha estimada en que se acaba, según el empaque y la porción diaria.
+      const out = foodStatus([{ id, kind, at, xp: 0, fields: clean }], Date.now())?.runsOut;
+      if (out && out > Date.now()) dated.push({ title: `Se acaba ${clean.nombre}`, at: out });
+    }
     const hours = Number(clean.cadaHoras);
-    const doses = !vaccine && hours > 0 ? { title: `Toma de ${clean.nombre}`, hours, start: at } : undefined;
+    const doses = kind === 'medicamento' && hours > 0 ? { title: `Toma de ${clean.nombre}`, hours, start: at } : undefined;
     const already = data.reminders.some((r) => r.entryId === id);
     if (!already && (dated.length > 0 || doses)) {
       setTargets(dated);
@@ -72,7 +80,7 @@ export default function Ficha() {
   const reading = () =>
     soon(
       'Lectura automática',
-      `Pronto la app leerá las fotos del ${vaccine ? 'carnet' : 'empaque'} y llenará los datos sola: nombre, cantidad, ingredientes, fechas y más. Necesita un servicio en internet que se conectará en la siguiente etapa. Por ahora escribe los datos a mano; las fotos quedan guardadas con el registro.`,
+      `Pronto la app leerá las fotos del ${vaccine ? 'carnet' : 'empaque'} y llenará los datos sola: ${food ? 'marca, tipo, ingredientes, porción recomendada y fecha de caducidad' : 'nombre, cantidad, ingredientes, fechas y más'}. Necesita un servicio en internet que se conectará en la siguiente etapa. Por ahora escribe los datos a mano; las fotos quedan guardadas con el registro.`,
     );
   const lookup = (label: string) =>
     soon(
@@ -83,7 +91,7 @@ export default function Ficha() {
   if (step === 'revisar') {
     return (
       <View style={{ flex: 1, backgroundColor: colors.bg }}>
-        <BackHeader title="Revisa los datos" subtitle={`${vaccine ? 'Vacuna' : 'Medicamento'} de ${pet.name}`} onBack={() => setStep('datos')} />
+        <BackHeader title="Revisa los datos" subtitle={`${ficha.what} de ${pet.name}`} onBack={() => setStep('datos')} />
         <ScrollView contentContainerStyle={s.page} keyboardShouldPersistTaps="handled">
           {missing.length > 0 && (
             <Card style={{ gap: 12, borderWidth: 2, borderColor: colors.lost }}>
@@ -123,9 +131,9 @@ export default function Ficha() {
       <BackHeader title={title} subtitle={pet.name} />
       <ScrollView contentContainerStyle={s.page} keyboardShouldPersistTaps="handled">
         <Card style={{ gap: 10 }}>
-          <T.Black>Fotos {vaccine ? 'del carnet de vacunación' : 'de la caja o el frasco'}</T.Black>
+          <T.Black>{ficha.photosTitle}</T.Black>
           <T.Muted style={{ fontSize: 13 }}>Toma una foto de cada lado. Quedan guardadas con el registro.</T.Muted>
-          <PhotoPair photos={photos} onChange={setPhotos} sides={vaccine ? ['Frente del carnet', 'Reverso del carnet'] : ['Frente de la caja', 'Reverso de la caja']} />
+          <PhotoSet photos={photos} onChange={setPhotos} sides={ficha.sides} />
           <Button label="Leer los datos de las fotos" kind="secondary" disabled={!photos.some(Boolean)} onPress={reading} />
         </Card>
 
@@ -140,6 +148,12 @@ export default function Ficha() {
             )}
           </View>
         ))}
+        {food && (
+          <Card style={{ gap: 10 }}>
+            <T.Black>¿Dónde lo compras?</T.Black>
+            <ProviderPicker type="tienda" value={values.tiendaId} onChange={(id) => setValues((x) => ({ ...x, tiendaId: id ?? '' }))} />
+          </Card>
+        )}
         <Button label="Revisar antes de guardar" kind="solid" onPress={() => setStep('revisar')} />
         {editing && <DeleteEntry onDelete={() => (removeEntry(editing.id), finish())} />}
       </ScrollView>

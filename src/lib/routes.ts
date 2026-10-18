@@ -4,6 +4,12 @@ import type { Entry, EntryKind } from './types';
 
 // Cada tipo de registro abre su propia ventana. Con id, la ventana abre en modo editar.
 function pathFor(kind: EntryKind) {
+  if (kind === 'paseo') return '/salida';
+  if (kind === 'peso') return '/medidas';
+  if (kind === 'alimento') return '/ficha';
+  if (kind === 'higiene') return '/higiene';
+  if (kind === 'foto') return '/foto-semana';
+  if (kind === 'animo') return '/animo';
   if (kind === 'vacuna' || kind === 'medicamento') return '/ficha';
   if (kind === 'veterinario') return '/veterinario';
   if (kind === 'novedad' || kind === 'deposicion' || kind === 'enfermedad' || kind === 'lesion') return '/novedad';

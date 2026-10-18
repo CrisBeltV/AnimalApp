@@ -40,3 +40,12 @@ export async function cancel(id?: string) {
 }
 
 export const canNotify = true;
+
+// Aviso diario a una hora fija (horarios de comida, recordatorio de paseo).
+export async function scheduleDaily(title: string, body: string, hour: number, minute: number) {
+  if (!(await allowed())) return undefined;
+  return Notifications.scheduleNotificationAsync({
+    content: { title, body },
+    trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour, minute },
+  });
+}

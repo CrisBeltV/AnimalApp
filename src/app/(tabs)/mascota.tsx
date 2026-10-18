@@ -1,16 +1,26 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AccountButton } from '../../components/AccountButton';
+import { CONDITIONS } from '../../components/BodyGuide';
+import { MealTimes, WalkReminder } from '../../components/DailyTimes';
 import { Icon } from '../../components/Icon';
 import type { IconName } from '../../components/Icon';
 import { PetDrawing } from '../../components/PetDrawing';
 import { Bar, Button, Card, EntryRow, T, soon, when } from '../../components/ui';
 import {
   DAY_MS,
+  GROOMING,
+  MOODS,
+  NEW_PARK_XP,
+  PARK_BADGES,
+  foodStatus,
   isIssue,
+  lowMoodDays,
+  parkBadge,
+  parkMinutes,
   activityWord,
   computeStats,
   lastWeight,
@@ -26,7 +36,7 @@ import {
 } from '../../lib/game';
 import { kg } from '../../lib/format';
 import { formatDate } from '../../lib/health';
-import { newEntry } from '../../lib/routes';
+import { newEntry, openEntry } from '../../lib/routes';
 import { useStore } from '../../lib/store';
 import { colors, fonts } from '../../lib/theme';
 import type { AppData, EntryKind } from '../../lib/types';
@@ -61,7 +71,7 @@ export default function MiMascota() {
     comida: <Comida data={data} now={now} />,
     cuerpo: <Cuerpo data={data} />,
     salud: <Salud data={data} now={now} />,
-    animo: <Animo data={data} now={now} />,
+    animo: <Animo data={data} now={now} onFilter={setFilter} />,
   };
 
   return (
@@ -198,6 +208,7 @@ function Todo({ data, now, onFilter }: { data: AppData; now: number; onFilter: (
           </View>
         </Pressable>
       </View>
+      <Timeline data={data} now={now} />
     </>
   );
 }
@@ -240,8 +251,11 @@ function Actividad({ data, now }: { data: AppData; now: number }) {
   const week = weekMinutes(data.entries, now);
   const today = week[dayIndex(now)];
   const todayWalks = todayEntries(data.entries, now, 'paseo');
-  const last = data.entries.find((e) => e.kind === 'paseo');
+  const recent = data.entries.filter((e) => e.kind === 'paseo').slice(0, 3);
   const days = streak(data.entries, now, 'paseo');
+  const parks = data.parks
+    .map((p) => ({ ...p, minutes: Math.round(parkMinutes(data.entries, p.id)) }))
+    .sort((a, b) => b.minutes - a.minutes);
 
   return (
     <>
@@ -257,7 +271,7 @@ function Actividad({ data, now }: { data: AppData; now: number }) {
         <T.Muted>Hoy</T.Muted>
         <Big value={`${Math.round(today)}`} unit={`de ${goal} min`} />
         <T.Bold>
-          {todayWalks.length} {todayWalks.length === 1 ? word.toLowerCase() : `${word.toLowerCase()}s`}
+          {todayWalks.length} {todayWalks.length === 1 ? 'actividad' : 'actividades'}
         </T.Bold>
       </Card>
       <Card style={{ gap: 10 }}>
@@ -267,12 +281,38 @@ function Actividad({ data, now }: { data: AppData; now: number }) {
         </View>
         <WeekBars values={week} goal={goal} now={now} />
       </Card>
-      <Card style={{ gap: 4 }}>
-        <T.Muted>
-          Último {word.toLowerCase()}
-          {last ? ` · ${when(last.at)}` : ''}
-        </T.Muted>
-        <T.Black>{last ? `${last.minutes} min · +${last.xp} XP` : 'Todavía no hay registros'}</T.Black>
+      <Card style={{ gap: 6 }}>
+        <T.Black>Últimas actividades</T.Black>
+        {recent.length === 0 ? (
+          <T.Muted>Todavía no hay registros.</T.Muted>
+        ) : (
+          recent.map((e) => <EntryRow key={e.id} entry={e} species={pet.species} />)
+        )}
+      </Card>
+      <Card style={{ gap: 8 }}>
+        <View style={s.rowBetween}>
+          <T.Black>Conquista de parques</T.Black>
+          <T.Muted style={{ fontSize: 13 }}>Bronce 60 · Plata 180 · Oro 600 min</T.Muted>
+        </View>
+        {parks.length === 0 ? (
+          <T.Muted style={{ fontSize: 13 }}>Al registrar un paseo, elige el parque. Cada parque nuevo da +{NEW_PARK_XP} XP.</T.Muted>
+        ) : (
+          parks.slice(0, 5).map((p) => {
+            const badge = parkBadge(p.minutes);
+            const nextBadge = [...PARK_BADGES].reverse().find((b) => b.min > p.minutes);
+            return (
+              <View key={p.id} style={{ gap: 4 }}>
+                <View style={s.rowBetween}>
+                  <T.Black style={{ flex: 1 }}>
+                    {badge?.icon ?? '🌳'} {p.name}
+                  </T.Black>
+                  <T.Muted style={{ fontSize: 13 }}>{p.minutes} min</T.Muted>
+                </View>
+                <Bar value={nextBadge ? (p.minutes / nextBadge.min) * 100 : 100} color={colors.found} />
+              </View>
+            );
+          })
+        )}
       </Card>
       <Card style={[s.rowBetween, { backgroundColor: colors.lilacSoft }]}>
         <View style={{ flex: 1, gap: 6 }}>
@@ -280,6 +320,10 @@ function Actividad({ data, now }: { data: AppData; now: number }) {
           <Bar value={(Math.min(days, 7) / 7) * 100} color={colors.lilacStrong} track="#FFFFFF" />
         </View>
         <T.Display style={{ fontSize: 22, marginLeft: 12 }}>{Math.min(days, 7)}/7</T.Display>
+      </Card>
+      <Card style={{ gap: 8 }}>
+        <T.Black>Recordarme {pet.species === 'gato' ? 'jugar' : 'pasear'} cada día a las</T.Black>
+        <WalkReminder />
       </Card>
       <Button label={`Registrar ${word.toLowerCase()}`} onPress={() => add('paseo')} />
     </>
@@ -293,10 +337,50 @@ function Comida({ data, now }: { data: AppData; now: number }) {
   const water = todayEntries(data.entries, now, 'agua').reduce((sum, e) => sum + (e.ml ?? 0), 0);
   const goal = waterGoal(data);
   const days = streak(data.entries, now, 'comida');
+  const food = foodStatus(data.entries, now);
+  const store = data.providers.find((p) => p.id === food?.food.fields?.tiendaId);
+  const lowFood = food?.left !== null && food?.left !== undefined && food.left <= 7;
+  const expiring = food?.expires ? food.expires - now <= 30 * DAY_MS : false;
 
   return (
     <>
       <Intro title="Comida y agua" text={`Anota cada comida y el agua del día. Comer a sus horas mantiene la racha y la energía de ${pet.name}.`} />
+      {food ? (
+        <Card style={[{ gap: 8 }, (lowFood || expiring) && { borderWidth: 2, borderColor: colors.lost }]}>
+          <View style={s.rowBetween}>
+            <T.Muted>Alimento actual</T.Muted>
+            <Pressable onPress={() => openEntry(food.food)}>
+              <T.Black style={{ fontSize: 13, color: colors.accent }}>Ver o editar</T.Black>
+            </Pressable>
+          </View>
+          <T.Display style={{ fontSize: 20 }}>{food.food.fields?.nombre}</T.Display>
+          <T.Muted style={{ fontSize: 13 }}>
+            {[food.food.fields?.porcion && `${food.food.fields.porcion} g × ${food.food.fields.comidasDia || 1} al día`, store?.name && `Se compra en ${store.name}`]
+              .filter(Boolean)
+              .join(' · ')}
+          </T.Muted>
+          {food.left !== null && (
+            <>
+              <Bar value={Math.min(100, (food.left / 30) * 100)} color={lowFood ? colors.lost : colors.found} />
+              <T.Bold style={{ color: lowFood ? colors.lostText : colors.body }}>
+                {food.left === 0 ? 'Ya se debió acabar' : `Quedan unos ${food.left} ${food.left === 1 ? 'día' : 'días'}`}
+                {lowFood ? ' · compra el siguiente' : ''}
+              </T.Bold>
+            </>
+          )}
+          {food.expires && (
+            <T.Bold style={{ color: expiring ? colors.lostText : colors.textMuted, fontSize: 14 }}>
+              {food.expires < now ? 'Vencido' : 'Vence'} el {formatDate(food.expires)}
+            </T.Bold>
+          )}
+        </Card>
+      ) : (
+        <Card style={{ gap: 6 }}>
+          <T.Black>¿Qué come {pet.name}?</T.Black>
+          <T.Muted style={{ fontSize: 13 }}>Toma foto de la bolsa o la lata. La app te avisará cuando se esté acabando o vaya a vencer.</T.Muted>
+        </Card>
+      )}
+      <Button label={food ? 'Registrar bolsa nueva' : 'Registrar su alimento'} onPress={() => add('alimento')} />
       <Card style={{ gap: 8 }}>
         <View style={s.rowBetween}>
           <T.Black>Comidas de hoy</T.Black>
@@ -305,13 +389,12 @@ function Comida({ data, now }: { data: AppData; now: number }) {
         {meals.length === 0 ? (
           <T.Muted>Aún no anotas comidas hoy.</T.Muted>
         ) : (
-          meals.map((e) => (
-            <T.Body key={e.id}>
-              <Text style={{ fontWeight: '800' }}>{when(e.at).replace('hoy ', '')}</Text>
-              {e.note ? ` · ${e.note}` : ''}
-            </T.Body>
-          ))
+          meals.map((e) => <EntryRow key={e.id} entry={e} species={pet.species} />)
         )}
+      </Card>
+      <Card style={{ gap: 8 }}>
+        <T.Black>Horarios de comida</T.Black>
+        <MealTimes />
       </Card>
       <Card style={{ gap: 10 }}>
         <View style={s.rowBetween}>
@@ -341,15 +424,20 @@ function Cuerpo({ data }: { data: AppData }) {
   const last = weights[weights.length - 1];
   const max = Math.max(...weights.map((w) => w.kg ?? 0), 1);
   const age = pet.birthDate ? Math.floor((Date.now() - new Date(pet.birthDate).getTime()) / (365.25 * DAY_MS)) : null;
+  const condition = CONDITIONS.find((c) => c.id === data.entries.find((e) => e.kind === 'peso' && e.fields?.condicion)?.fields?.condicion);
+  const photo = data.entries.find((e) => e.kind === 'foto');
+  const grooming = GROOMING.map((g) => ({ ...g, last: data.entries.find((e) => e.kind === 'higiene' && e.fields?.tipo === g.id) }));
 
   return (
     <>
-      <Intro title="Cuerpo" text={`Peso, figura y crecimiento. Una foto por semana ayudará a ver cómo cambia ${pet.name} y a ajustar su modelo 3D.`} />
+      <Intro title="Cuerpo" text={`Peso, tamaño y figura. Una foto por semana ayudará a ver cómo cambia ${pet.name} y a ajustar su modelo 3D.`} />
       <Card style={{ gap: 10 }}>
         <T.Muted>Peso</T.Muted>
         {last ? (
           <>
-            <Big value={kg(last.kg!)} unit={`kg · ${when(last.at)}`} />
+            <Pressable onPress={() => openEntry(last)}>
+              <Big value={kg(last.kg!)} unit={`kg · ${when(last.at)}`} />
+            </Pressable>
             <View style={[s.bars, { height: 90 }]}>
               {weights.map((w) => (
                 <View key={w.id} style={s.barCol}>
@@ -358,7 +446,8 @@ function Cuerpo({ data }: { data: AppData }) {
               ))}
             </View>
             <T.Muted style={{ fontSize: 13 }}>
-              Últimos {weights.length} {weights.length === 1 ? 'registro' : 'registros'} de peso
+              {[last.fields?.alto && `Altura ${last.fields.alto} cm`, last.fields?.largo && `Largo ${last.fields.largo} cm`].filter(Boolean).join(' · ') ||
+                `Últimos ${weights.length} ${weights.length === 1 ? 'registro' : 'registros'} de peso`}
             </T.Muted>
           </>
         ) : (
@@ -367,21 +456,37 @@ function Cuerpo({ data }: { data: AppData }) {
       </Card>
       <View style={s.grid}>
         <Card style={{ flexBasis: '45%', flexGrow: 1, gap: 4 }}>
-          <T.Muted>Crecimiento</T.Muted>
-          <T.Display style={{ fontSize: 22 }}>
-            {age === null ? 'Sin fecha' : age < 1 ? (pet.species === 'gato' ? 'Gatito' : 'Cachorro') : `${age} ${age === 1 ? 'año' : 'años'}`}
-          </T.Display>
-          <T.Muted style={{ fontSize: 13 }}>{pet.breed || (pet.species === 'gato' ? 'Gato' : 'Perro')}</T.Muted>
+          <T.Muted>Condición</T.Muted>
+          <T.Display style={{ fontSize: 22 }}>{condition?.label ?? 'Sin dato'}</T.Display>
+          <T.Muted style={{ fontSize: 13 }}>
+            {age === null ? pet.breed || (pet.species === 'gato' ? 'Gato' : 'Perro') : age < 1 ? (pet.species === 'gato' ? 'Gatito' : 'Cachorro') : `${age} ${age === 1 ? 'año' : 'años'}`}
+          </T.Muted>
         </Card>
-        <Pressable
-          onPress={() => soon('Foto de la semana', 'Con la cámara del teléfono tomarás una foto por semana. Servirá para ver su crecimiento y armar su modelo 3D.')}
-          style={[s.tile, { backgroundColor: colors.lilacSoft, minHeight: 0 }]}
-        >
-          <Icon name="camara" size={26} color={colors.lilacText} />
-          <T.Black>Foto de esta semana</T.Black>
+        <Pressable onPress={() => (photo ? openEntry(photo) : add('foto'))} style={[s.tile, { backgroundColor: colors.lilacSoft, minHeight: 0, overflow: 'hidden' }]}>
+          {photo?.photos?.[0] ? (
+            <Image source={{ uri: photo.photos[0] }} style={{ width: '100%', height: 70, borderRadius: 12 }} resizeMode="cover" />
+          ) : (
+            <Icon name="camara" size={26} color={colors.lilacText} />
+          )}
+          <T.Black>{photo ? `Foto ${when(photo.at)}` : 'Foto de esta semana'}</T.Black>
         </Pressable>
       </View>
-      <Button label="Registrar peso" kind="solid" onPress={() => add('peso')} />
+      {photo && <Button label="Tomar la foto de esta semana" kind="secondary" onPress={() => add('foto')} />}
+      <Card style={{ gap: 8 }}>
+        <T.Black>Higiene</T.Black>
+        {grooming.map((g) => (
+          <Pressable key={g.id} onPress={() => (g.last ? openEntry(g.last) : add('higiene'))} style={s.rowBetween}>
+            <T.Bold>
+              {g.icon} {g.label}
+            </T.Bold>
+            <T.Muted style={{ fontSize: 13 }}>
+              {g.last ? `${when(g.last.at)}${g.last.fields?.proxima ? ` · próxima ${g.last.fields.proxima}` : ''}` : 'Sin registro'}
+            </T.Muted>
+          </Pressable>
+        ))}
+        <Button label="Registrar baño, uñas o peluquería" onPress={() => add('higiene')} />
+      </Card>
+      <Button label="Registrar peso y medidas" kind="solid" onPress={() => add('peso')} />
     </>
   );
 }
@@ -466,7 +571,7 @@ function Salud({ data, now }: { data: AppData; now: number }) {
   );
 }
 
-function Animo({ data, now }: { data: AppData; now: number }) {
+function Animo({ data, now, onFilter }: { data: AppData; now: number; onFilter: (f: Filter) => void }) {
   const pet = data.pet!;
   const stats = computeStats(data, now);
   const days = streak(data.entries, now);
@@ -475,10 +580,34 @@ function Animo({ data, now }: { data: AppData; now: number }) {
     (_, i) => data.entries.filter((e) => e.at >= monday + i * DAY_MS && e.at < monday + (i + 1) * DAY_MS).length,
   );
   const notes = data.entries.filter((e) => e.kind === 'nota').slice(0, 5);
+  const todayMood = todayEntries(data.entries, now, 'animo')[0];
+  const moodInfo = MOODS.find((m) => m.id === todayMood?.fields?.estado);
+  const lowDays = lowMoodDays(data.entries, now);
+  const moods = data.entries.filter((e) => e.kind === 'animo').slice(0, 5);
 
   return (
     <>
       <Intro title="Ánimo" text="Felicidad y amor suben con paseos, juego y cuidados anotados. Si pasan días sin registrar, bajan poco a poco." />
+      {lowDays >= 3 && (
+        <Card style={{ gap: 8, backgroundColor: colors.lostSoft }}>
+          <T.Black style={{ color: colors.lostText }}>{pet.name} ha estado decaído {lowDays} de los últimos 5 días</T.Black>
+          <T.Body>Revisa en Salud si hay novedades, como falta de apetito o vómito, y considera consultar al veterinario.</T.Body>
+          <Button label="Ir a Salud" kind="lost" onPress={() => onFilter('salud')} />
+        </Card>
+      )}
+      <Pressable onPress={() => (todayMood ? openEntry(todayMood) : add('animo'))} style={s.moodCard}>
+        <T.Bold>¿Cómo está hoy?</T.Bold>
+        <T.Display style={{ fontSize: 24 }}>{moodInfo ? `${moodInfo.icon} ${moodInfo.label}` : 'Toca para elegir'}</T.Display>
+        {todayMood?.fields?.nota ? <T.Muted style={{ fontSize: 13 }}>{todayMood.fields.nota}</T.Muted> : null}
+      </Pressable>
+      {moods.length > 1 && (
+        <Card style={{ gap: 4 }}>
+          <T.Black>Últimos días</T.Black>
+          {moods.map((e) => (
+            <EntryRow key={e.id} entry={e} species={pet.species} />
+          ))}
+        </Card>
+      )}
       <View style={s.grid}>
         <Card style={{ flexBasis: '45%', flexGrow: 1, gap: 6 }}>
           <T.Muted>Felicidad</T.Muted>
@@ -529,16 +658,67 @@ function Animo({ data, now }: { data: AppData; now: number }) {
         )}
       </Card>
       <Button label="Escribir en el diario" kind="solid" onPress={() => add('nota')} />
-      {data.entries.length > 0 && (
-        <Card>
-          <T.Black>Todo lo anotado</T.Black>
-          <T.Muted style={{ fontSize: 13, marginBottom: 4 }}>Toca un registro para editarlo</T.Muted>
-          {data.entries.slice(0, 15).map((e) => (
-            <EntryRow key={e.id} entry={e} species={pet.species} />
-          ))}
-        </Card>
-      )}
     </>
+  );
+}
+
+const RANGES = [
+  { id: 'hoy', label: 'Hoy', days: 1 },
+  { id: '7', label: '7 días', days: 7 },
+  { id: '30', label: '30 días', days: 30 },
+  { id: 'todo', label: 'Todo', days: 0 },
+];
+
+// Todo lo anotado como línea de tiempo, agrupado por día. Toca un registro para editarlo.
+function Timeline({ data, now }: { data: AppData; now: number }) {
+  const [range, setRange] = useState('7');
+  const days = RANGES.find((r) => r.id === range)!.days;
+  const since = days ? startOfDay(now) - (days - 1) * DAY_MS : 0;
+  const list = data.entries.filter((e) => e.at >= since).slice(0, 60);
+  const groups: { day: number; items: typeof list }[] = [];
+  for (const e of list) {
+    const d = startOfDay(e.at);
+    const g = groups[groups.length - 1];
+    if (g && g.day === d) g.items.push(e);
+    else groups.push({ day: d, items: [e] });
+  }
+  const dayLabel = (d: number) =>
+    d === startOfDay(now)
+      ? 'Hoy'
+      : d === startOfDay(now) - DAY_MS
+        ? 'Ayer'
+        : new Date(d).toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  return (
+    <Card style={{ gap: 8 }}>
+      <T.Black>Línea de tiempo</T.Black>
+      <View style={{ flexDirection: 'row', gap: 6 }}>
+        {RANGES.map((r) => (
+          <Pressable
+            key={r.id}
+            accessibilityRole="radio"
+            accessibilityState={{ checked: r.id === range }}
+            onPress={() => setRange(r.id)}
+            style={[s.range, r.id === range && { backgroundColor: colors.blue, borderColor: colors.accent }]}
+          >
+            <T.Black style={{ fontSize: 13 }}>{r.label}</T.Black>
+          </Pressable>
+        ))}
+      </View>
+      {groups.length === 0 ? (
+        <T.Muted>No hay registros en estas fechas.</T.Muted>
+      ) : (
+        groups.map((g) => (
+          <View key={g.day}>
+            <T.Eyebrow style={{ marginTop: 8 }}>{dayLabel(g.day).toUpperCase()}</T.Eyebrow>
+            {g.items.map((e) => (
+              <EntryRow key={e.id} entry={e} species={data.pet!.species} />
+            ))}
+          </View>
+        ))
+      )}
+      <T.Muted style={{ fontSize: 12 }}>Toca un registro para editarlo.</T.Muted>
+    </Card>
   );
 }
 
@@ -593,6 +773,16 @@ const s = StyleSheet.create({
     borderStyle: 'dashed',
     borderColor: colors.accent,
     opacity: 0.5,
+  },
+  moodCard: { backgroundColor: colors.blue, borderRadius: 22, padding: 14, gap: 6 },
+  range: {
+    flex: 1,
+    minHeight: 36,
+    borderRadius: 18,
+    borderWidth: 2,
+    borderColor: colors.grey,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   healthHead: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   addChip: {

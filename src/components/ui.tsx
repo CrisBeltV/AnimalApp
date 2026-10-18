@@ -4,7 +4,8 @@ import type { ReactNode } from 'react';
 import type { StyleProp, TextStyle, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { KIND_INFO, activityWord } from '../lib/game';
+import { KIND_INFO, WALK_TYPES, activityWord } from '../lib/game';
+import { useStore } from '../lib/store';
 import { openEntry } from '../lib/routes';
 import { colors, radius, softShadow, type } from '../lib/theme';
 import type { Entry, Species } from '../lib/types';
@@ -92,8 +93,11 @@ const BUTTONS: Record<ButtonKind, { bg: string; border: string; fg: string }> = 
 
 export function Bar({ value, color = colors.accent, track = colors.grey }: { value: number; color?: string; track?: string }) {
   return (
-    <View style={[styles.barTrack, { backgroundColor: track }]}>
-      <View style={[styles.barFill, { width: `${Math.max(2, Math.min(100, value))}%`, backgroundColor: color }]} />
+    // La fila de afuera hace que la barra se vea igual dentro de filas y de columnas.
+    <View style={styles.barRow}>
+      <View style={[styles.barTrack, { backgroundColor: track }]}>
+        <View style={[styles.barFill, { width: `${Math.max(2, Math.min(100, value))}%`, backgroundColor: color }]} />
+      </View>
     </View>
   );
 }
@@ -157,9 +161,12 @@ export function soon(title: string, text: string) {
 export function EntryRow({ entry, species }: { entry: Entry; species: Species }) {
   const info = KIND_INFO[entry.kind];
   const label = entry.kind === 'paseo' ? activityWord(species) : info.label;
+  const { data } = useStore();
+  const park = data.parks.find((p) => p.id === entry.fields?.parqueId)?.name;
+  const walkType = WALK_TYPES.find((w) => w.id === entry.fields?.tipo && w.id !== 'paseo')?.label;
   const detail =
     entry.kind === 'paseo'
-      ? `${entry.minutes} min${entry.note ? ` · ${entry.note}` : ''}`
+      ? [`${entry.minutes} min`, walkType, park, entry.note].filter(Boolean).join(' · ')
       : entry.kind === 'peso'
         ? `${String(entry.kg).replace('.', ',')} kg`
         : entry.kind === 'agua'
@@ -203,6 +210,7 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  barRow: { flex: 1, flexDirection: 'row', minHeight: 8 },
   barTrack: { height: 8, borderRadius: 4, overflow: 'hidden', flex: 1 },
   barFill: { height: '100%', borderRadius: 4 },
   menuRow: {

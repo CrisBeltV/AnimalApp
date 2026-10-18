@@ -24,8 +24,8 @@ export default function PaseoEnCurso() {
   const next = WALK_GOALS.find((g) => g > minutes);
 
   function finish() {
-    const m = finishWalk();
-    router.replace({ pathname: '/resumen', params: { min: String(m) } });
+    const { minutes: m, id } = finishWalk();
+    router.replace({ pathname: '/resumen', params: { min: String(m), id } });
   }
 
   return (

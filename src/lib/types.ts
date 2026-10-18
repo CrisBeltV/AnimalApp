@@ -20,6 +20,10 @@ export type EntryKind =
   | 'enfermedad'
   | 'lesion'
   | 'novedad'
+  | 'alimento'
+  | 'higiene'
+  | 'foto'
+  | 'animo'
   | 'nota';
 
 export type Entry = {
@@ -78,6 +82,34 @@ export type Report = {
   example?: boolean;
 };
 
+// Parque registrado por el dueño. Los minutos de paseo ahí cuentan para conquistarlo.
+export type Park = {
+  id: string;
+  name: string;
+  barrio?: string;
+};
+
+// Proveedores guardados por el dueño (paseadores, guarderías, tiendas, peluquerías).
+// Más adelante se unirán con las cuentas de aliados registrados en la app.
+export type ProviderType = 'paseador' | 'guarderia' | 'tienda' | 'peluqueria';
+
+export type Provider = {
+  id: string;
+  type: ProviderType;
+  name: string;
+  contact?: string;
+  address?: string;
+  place?: string;
+  phone?: string;
+};
+
+// Avisos diarios: horarios de comida y recordatorio de paseo.
+export type Settings = {
+  mealTimes: string[]; // "07:00"
+  walkTime?: string; // "18:00"
+  notifIds: Record<string, string>; // aviso agendado por horario
+};
+
 export type AppData = {
   ownerName: string;
   pet: Pet | null;
@@ -87,6 +119,9 @@ export type AppData = {
   unlocked: string[]; // ids de logros ya ganados
   reminders: Reminder[];
   vets: Vet[];
+  parks: Park[];
+  providers: Provider[];
+  settings: Settings;
 };
 
 export const emptyData: AppData = {
@@ -98,4 +133,7 @@ export const emptyData: AppData = {
   unlocked: [],
   reminders: [],
   vets: [],
+  parks: [],
+  providers: [],
+  settings: { mealTimes: [], notifIds: {} },
 };

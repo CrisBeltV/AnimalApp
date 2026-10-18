@@ -1,3 +1,4 @@
+import { parseDate } from './health';
 import type { AppData, Entry, EntryKind, Species } from './types';
 
 export const MAX_LEVEL = 15;
@@ -16,6 +17,10 @@ export const KIND_INFO: Record<EntryKind, { label: string; icon: string; xp: num
   enfermedad: { label: 'Síntoma', icon: '🤒', xp: 5 },
   lesion: { label: 'Lesión', icon: '🩹', xp: 5 },
   novedad: { label: 'Novedad', icon: '⚠️', xp: 5 },
+  alimento: { label: 'Alimento', icon: '🛍️', xp: 10 },
+  higiene: { label: 'Higiene', icon: '🛁', xp: 10 },
+  foto: { label: 'Foto de la semana', icon: '📸', xp: 15 },
+  animo: { label: 'Ánimo del día', icon: '😊', xp: 5 },
   nota: { label: 'Diario', icon: '📝', xp: 5 },
 };
 
@@ -65,6 +70,7 @@ export function todayEntries(entries: Entry[], now: number, kind?: EntryKind) {
 }
 
 export const WALK_GOALS = [15, 30, 45];
+export const NEW_PARK_XP = 30;
 
 export function activityWord(species: Species) {
   return species === 'gato' ? 'Juego' : 'Paseo';
@@ -243,6 +249,30 @@ export const ACHIEVEMENTS: Achievement[] = [
     check: (d) => d.entries.some((e) => e.kind === 'vacuna'),
   },
   {
+    id: 'parque-nuevo',
+    title: 'Visita un nuevo parque',
+    description: 'Registra un paseo en un parque',
+    icon: '🌳',
+    xp: 30,
+    check: (d) => parksVisited(d) >= 1,
+  },
+  {
+    id: 'tres-parques',
+    title: 'Explorador del barrio',
+    description: 'Pasea en 3 parques distintos',
+    icon: '🗺️',
+    xp: 60,
+    check: (d) => parksVisited(d) >= 3,
+  },
+  {
+    id: 'foto-semana',
+    title: 'Foto de la semana',
+    description: 'Toma la primera foto semanal',
+    icon: '📸',
+    xp: 20,
+    check: (d) => d.entries.some((e) => e.kind === 'foto'),
+  },
+  {
     id: 'diez-paseos',
     title: 'Caminante',
     description: 'Completa 10 paseos',
@@ -261,3 +291,66 @@ export function isIssue(e: Entry) {
   if (e.kind === 'enfermedad' || e.kind === 'lesion') return true;
   return e.kind === 'novedad' && (e.signs ?? []).some((s) => s !== 'normales');
 }
+
+const parksVisited = (d: AppData) => new Set(walks(d).map((e) => e.fields?.parqueId).filter(Boolean)).size;
+
+// Conquista de parques: minutos acumulados en cada parque y su insignia.
+export const PARK_BADGES = [
+  { min: 600, label: 'Oro', icon: '🥇' },
+  { min: 180, label: 'Plata', icon: '🥈' },
+  { min: 60, label: 'Bronce', icon: '🥉' },
+];
+
+export function parkMinutes(entries: Entry[], parkId: string) {
+  return entries
+    .filter((e) => e.kind === 'paseo' && e.fields?.parqueId === parkId)
+    .reduce((s, e) => s + (e.minutes ?? 0), 0);
+}
+
+export function parkBadge(minutes: number) {
+  return PARK_BADGES.find((b) => minutes >= b.min);
+}
+
+export const WALK_TYPES = [
+  { id: 'paseo', label: 'Paseo' },
+  { id: 'juego', label: 'Juego' },
+  { id: 'entrenamiento', label: 'Entrenamiento' },
+  { id: 'guarderia', label: 'Guardería' },
+];
+
+export const MOODS = [
+  { id: 'feliz', label: 'Feliz', icon: '😄' },
+  { id: 'tranquilo', label: 'Tranquilo', icon: '😌' },
+  { id: 'ansioso', label: 'Ansioso', icon: '😟' },
+  { id: 'decaido', label: 'Decaído', icon: '😞' },
+];
+
+// Si "decaído" se repite 3 de los últimos 5 días, se sugiere revisar Salud.
+export function lowMoodDays(entries: Entry[], now: number) {
+  const since = startOfDay(now) - 4 * DAY;
+  const days = new Set(
+    entries.filter((e) => e.kind === 'animo' && e.fields?.estado === 'decaido' && e.at >= since).map((e) => startOfDay(e.at)),
+  );
+  return days.size;
+}
+
+// Alimento actual: días que quedan según el tamaño de la bolsa y la porción diaria.
+export function foodStatus(entries: Entry[], now: number) {
+  const food = entries.find((e) => e.kind === 'alimento');
+  if (!food?.fields) return null;
+  const f = food.fields;
+  const grams = Number((f.bolsaKg ?? '').replace(',', '.')) * 1000;
+  const perDay = Number(f.porcion) * Number(f.comidasDia || 1);
+  const opened = parseDate(f.apertura) ?? food.at;
+  const total = grams > 0 && perDay > 0 ? grams / perDay : null;
+  const left = total === null ? null : Math.max(0, Math.round(total - (startOfDay(now) - startOfDay(opened)) / DAY));
+  const expires = parseDate(f.caducidad);
+  return { food, left, runsOut: left === null ? null : startOfDay(now) + left * DAY, expires };
+}
+
+// Higiene: baño, uñas y peluquería.
+export const GROOMING = [
+  { id: 'bano', label: 'Baño', icon: '🛁' },
+  { id: 'unas', label: 'Uñas', icon: '✂️' },
+  { id: 'peluqueria', label: 'Peluquería', icon: '💇' },
+];

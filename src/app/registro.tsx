@@ -22,7 +22,11 @@ const ITEMS: { kind: EntryKind; label?: string; icon: IconName }[] = [
   { kind: 'veterinario', icon: 'cita' },
   { kind: 'novedad', label: 'Novedades', icon: 'sintoma' },
   { kind: 'paseo', icon: 'reloj' },
-  { kind: 'nota', label: 'Diario', icon: 'animo' },
+  { kind: 'higiene', label: 'Baño, uñas o peluquería', icon: 'cuerpo' },
+  { kind: 'animo', label: 'Ánimo del día', icon: 'animo' },
+  { kind: 'alimento', label: 'Alimento nuevo', icon: 'tienda' },
+  { kind: 'foto', label: 'Foto de la semana', icon: 'camara' },
+  { kind: 'nota', label: 'Diario', icon: 'lista' },
 ];
 
 const NUMBER: Partial<Record<EntryKind, { label: string; placeholder: string }>> = {
@@ -32,7 +36,7 @@ const NUMBER: Partial<Record<EntryKind, { label: string; placeholder: string }>>
 };
 
 // Vacuna, medicamento, veterinario y novedades tienen su propia ventana (ver lib/routes).
-const OWN_SCREEN: EntryKind[] = ['vacuna', 'medicamento', 'veterinario', 'novedad', 'deposicion', 'enfermedad', 'lesion'];
+const OWN_SCREEN: EntryKind[] = ['vacuna', 'medicamento', 'veterinario', 'novedad', 'deposicion', 'enfermedad', 'lesion', 'paseo', 'peso', 'alimento', 'higiene', 'foto', 'animo'];
 
 const NOTE_HINT: Partial<Record<EntryKind, string>> = {
   comida: '150 g de concentrado',

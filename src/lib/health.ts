@@ -1,5 +1,3 @@
-import type { EntryKind } from './types';
-
 // Campos de cada ficha de salud. "required" = necesario para cerrar el registro;
 // si falta, la vista previa pide completarlo antes de guardar.
 export type Field = {
@@ -41,8 +39,51 @@ export const MEDICAMENTO_FIELDS: Field[] = [
   { key: 'nota', label: 'Notas', placeholder: 'Darlo con comida, reacciones…', multiline: true },
 ];
 
-export function fieldsFor(kind: EntryKind): Field[] {
-  return kind === 'vacuna' ? VACUNA_FIELDS : MEDICAMENTO_FIELDS;
+export const ALIMENTO_FIELDS: Field[] = [
+  { key: 'nombre', label: 'Marca y nombre', placeholder: 'Marca, línea, sabor', required: true },
+  { key: 'tipo', label: 'Tipo', placeholder: 'Seco, húmedo, snack, casero' },
+  { key: 'porcion', label: 'Porción por comida (gramos)', placeholder: '150', number: true, required: true },
+  { key: 'comidasDia', label: 'Comidas al día', placeholder: '2', number: true },
+  { key: 'bolsaKg', label: 'Tamaño del empaque (kg)', placeholder: '8', number: true },
+  { key: 'apertura', label: 'Fecha en que lo abriste', placeholder: 'DD/MM/AAAA', required: true, date: true },
+  { key: 'caducidad', label: 'Fecha de caducidad', placeholder: 'DD/MM/AAAA', date: true, remind: 'Se vence el alimento' },
+  { key: 'ingredientes', label: 'Ingredientes', placeholder: 'Lo que dice el empaque', multiline: true },
+  { key: 'recomendada', label: 'Porción recomendada en el empaque', placeholder: 'Según el peso de la mascota', multiline: true },
+  { key: 'nota', label: 'Notas', placeholder: 'Le gusta, le cae mal…', multiline: true },
+];
+
+export type FichaKind = 'vacuna' | 'medicamento' | 'alimento';
+
+// Cómo se ve cada ficha con fotos y vista previa.
+export const FICHAS: Record<FichaKind, { fields: Field[]; dateKey: string; newTitle: string; what: string; photosTitle: string; sides: string[] }> = {
+  vacuna: {
+    fields: VACUNA_FIELDS,
+    dateKey: 'fecha',
+    newTitle: 'Nueva vacuna',
+    what: 'Vacuna',
+    photosTitle: 'Fotos del carnet de vacunación',
+    sides: ['Frente del carnet', 'Reverso del carnet'],
+  },
+  medicamento: {
+    fields: MEDICAMENTO_FIELDS,
+    dateKey: 'inicio',
+    newTitle: 'Nuevo medicamento',
+    what: 'Medicamento',
+    photosTitle: 'Fotos de la caja o el frasco',
+    sides: ['Frente de la caja', 'Reverso de la caja'],
+  },
+  alimento: {
+    fields: ALIMENTO_FIELDS,
+    dateKey: 'apertura',
+    newTitle: 'Alimento nuevo',
+    what: 'Alimento',
+    photosTitle: 'Fotos de la bolsa o la lata',
+    sides: ['Frente del empaque', 'Reverso del empaque'],
+  },
+};
+
+export function fichaKind(kind?: string): FichaKind {
+  return kind === 'medicamento' || kind === 'alimento' ? kind : 'vacuna';
 }
 
 // Fechas escritas como DD/MM/AAAA (también acepta - o .). Devuelve medianoche local o null.

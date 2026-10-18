@@ -8,9 +8,10 @@ import { canNotify, scheduleAt, scheduleEvery } from '../lib/notify';
 import { pickPhoto } from '../lib/photo';
 import { useStore } from '../lib/store';
 import { colors, fonts, radius, shadow } from '../lib/theme';
-import type { Reminder } from '../lib/types';
+import { parkBadge, parkMinutes } from '../lib/game';
+import type { ProviderType, Reminder } from '../lib/types';
 import { Icon } from './Icon';
-import { Button, Card, T } from './ui';
+import { Button, Card, T, soon } from './ui';
 
 // Piezas compartidas por las ventanas que registran datos de salud.
 
@@ -58,8 +59,8 @@ export function Input({
   );
 }
 
-// Dos fotos: frente y reverso del carnet o de la caja.
-export function PhotoPair({ photos, onChange, sides }: { photos: string[]; onChange: (p: string[]) => void; sides: [string, string] }) {
+// Varias fotos lado a lado: frente y reverso del carnet o de la caja, o las poses de la foto semanal.
+export function PhotoSet({ photos, onChange, sides }: { photos: string[]; onChange: (p: string[]) => void; sides: string[] }) {
   const [asking, setAsking] = useState<number | null>(null);
   const take = async (i: number, source: 'camara' | 'galeria') => {
     setAsking(null);
@@ -341,4 +342,221 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+});
+
+// Una sola opción entre varias (tipo de paseo, condición corporal, ánimo…).
+export function Chips({
+  options,
+  value,
+  onChange,
+}: {
+  options: { id: string; label: string; icon?: string }[];
+  value?: string;
+  onChange: (id: string) => void;
+}) {
+  return (
+    <View style={c.wrap}>
+      {options.map((o) => {
+        const on = o.id === value;
+        return (
+          <Pressable
+            key={o.id}
+            accessibilityRole="radio"
+            accessibilityState={{ checked: on }}
+            accessibilityLabel={o.label}
+            onPress={() => onChange(o.id)}
+            style={[c.chip, on && { backgroundColor: colors.blue, borderColor: colors.accent }]}
+          >
+            {o.icon ? <Text style={{ fontSize: 18 }}>{o.icon}</Text> : null}
+            <T.Black style={{ fontSize: 15 }}>{o.label}</T.Black>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+const PROVIDER_WORD: Record<ProviderType, { title: string; one: string; hint: string }> = {
+  paseador: { title: 'Paseador', one: 'paseador', hint: 'Nombre del paseador' },
+  guarderia: { title: 'Guardería', one: 'guardería', hint: 'Nombre de la guardería' },
+  tienda: { title: 'Tienda', one: 'tienda', hint: 'Nombre de la tienda' },
+  peluqueria: { title: 'Peluquería', one: 'peluquería', hint: 'Nombre de la peluquería o groomer' },
+};
+
+// Buscar un proveedor guardado o añadir uno nuevo. Más adelante también saldrán
+// los aliados registrados en la app.
+export function ProviderPicker({ type, value, onChange }: { type: ProviderType; value?: string; onChange: (id?: string) => void }) {
+  const { data, saveProvider } = useStore();
+  const word = PROVIDER_WORD[type];
+  const chosen = data.providers.find((p) => p.id === value);
+  const [query, setQuery] = useState('');
+  const [adding, setAdding] = useState(false);
+  const [form, setForm] = useState({ name: '', phone: '', address: '' });
+  const q = query.trim().toLowerCase();
+  const results = data.providers.filter((p) => p.type === type && (!q || p.name.toLowerCase().includes(q))).slice(0, 5);
+
+  if (chosen) {
+    return (
+      <View style={c.picked}>
+        <View style={{ flex: 1 }}>
+          <T.Black>{chosen.name}</T.Black>
+          <T.Muted style={{ fontSize: 13 }}>{[chosen.phone, chosen.address].filter(Boolean).join(' · ') || word.title}</T.Muted>
+        </View>
+        <Pressable onPress={() => onChange(undefined)} style={c.small}>
+          <T.Black style={{ fontSize: 13, color: colors.accent }}>Cambiar</T.Black>
+        </Pressable>
+      </View>
+    );
+  }
+  if (adding) {
+    const add = () => {
+      const id = saveProvider({ type, name: form.name.trim(), phone: form.phone.trim() || undefined, address: form.address.trim() || undefined });
+      setAdding(false);
+      onChange(id);
+    };
+    return (
+      <View style={{ gap: 8 }}>
+        <TextInput value={form.name} onChangeText={(name) => setForm({ ...form, name })} placeholder={word.hint} placeholderTextColor={colors.textMuted} style={s.input} />
+        <TextInput value={form.phone} onChangeText={(phone) => setForm({ ...form, phone })} placeholder="Teléfono (opcional)" keyboardType="phone-pad" placeholderTextColor={colors.textMuted} style={s.input} />
+        <TextInput value={form.address} onChangeText={(address) => setForm({ ...form, address })} placeholder="Dirección o barrio (opcional)" placeholderTextColor={colors.textMuted} style={s.input} />
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <Button label="Cancelar" kind="secondary" style={{ flex: 1 }} onPress={() => setAdding(false)} />
+          <Button label="Guardar" kind="solid" style={{ flex: 1 }} disabled={!form.name.trim()} onPress={add} />
+        </View>
+      </View>
+    );
+  }
+  return (
+    <View style={{ gap: 8 }}>
+      <TextInput value={query} onChangeText={setQuery} placeholder={`Buscar ${word.one}`} placeholderTextColor={colors.textMuted} style={[s.input, { borderRadius: radius.pill }]} />
+      {results.map((p) => (
+        <Pressable key={p.id} onPress={() => onChange(p.id)} style={c.result}>
+          <T.Black style={{ flex: 1 }}>{p.name}</T.Black>
+          <T.Black style={{ fontSize: 14, color: colors.accent }}>Usar</T.Black>
+        </Pressable>
+      ))}
+      <Pressable
+        onPress={() => {
+          setForm({ name: query.trim(), phone: '', address: '' });
+          setAdding(true);
+        }}
+        style={c.small}
+      >
+        <T.Black style={{ fontSize: 14, color: colors.accent }}>+ Añadir {word.one} nuevo</T.Black>
+      </Pressable>
+      <T.Muted style={{ fontSize: 12, color: colors.lilacText }}>Muy pronto aparecerán aquí los aliados registrados en la app.</T.Muted>
+    </View>
+  );
+}
+
+// Elegir parque: buscar por nombre o crear uno. El mapa y la ubicación llegan con el GPS.
+export function ParkPicker({ value, onChange }: { value?: string; onChange: (id?: string) => void }) {
+  const { data, savePark } = useStore();
+  const chosen = data.parks.find((p) => p.id === value);
+  const [query, setQuery] = useState('');
+  const [barrio, setBarrio] = useState('');
+  const [adding, setAdding] = useState(false);
+  const q = query.trim().toLowerCase();
+  const results = data.parks.filter((p) => !q || p.name.toLowerCase().includes(q)).slice(0, 5);
+  const mins = (id: string) => Math.round(parkMinutes(data.entries, id));
+
+  if (chosen) {
+    const badge = parkBadge(mins(chosen.id));
+    return (
+      <View style={c.picked}>
+        <Text style={{ fontSize: 22 }}>{badge?.icon ?? '🌳'}</Text>
+        <View style={{ flex: 1 }}>
+          <T.Black>{chosen.name}</T.Black>
+          <T.Muted style={{ fontSize: 13 }}>
+            {[chosen.barrio, `${mins(chosen.id)} min acumulados`].filter(Boolean).join(' · ')}
+          </T.Muted>
+        </View>
+        <Pressable onPress={() => onChange(undefined)} style={c.small}>
+          <T.Black style={{ fontSize: 13, color: colors.accent }}>Cambiar</T.Black>
+        </Pressable>
+      </View>
+    );
+  }
+  if (adding) {
+    return (
+      <View style={{ gap: 8 }}>
+        <TextInput value={query} onChangeText={setQuery} placeholder="Nombre del parque" placeholderTextColor={colors.textMuted} style={s.input} />
+        <TextInput value={barrio} onChangeText={setBarrio} placeholder="Barrio (opcional)" placeholderTextColor={colors.textMuted} style={s.input} />
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <Button label="Cancelar" kind="secondary" style={{ flex: 1 }} onPress={() => setAdding(false)} />
+          <Button
+            label="Guardar parque"
+            kind="solid"
+            style={{ flex: 1 }}
+            disabled={!query.trim()}
+            onPress={() => {
+              const id = savePark({ name: query.trim(), barrio: barrio.trim() || undefined });
+              setAdding(false);
+              setQuery('');
+              onChange(id);
+            }}
+          />
+        </View>
+      </View>
+    );
+  }
+  return (
+    <View style={{ gap: 8 }}>
+      <TextInput value={query} onChangeText={setQuery} placeholder="Buscar parque por nombre" placeholderTextColor={colors.textMuted} style={[s.input, { borderRadius: radius.pill }]} />
+      {results.map((p) => (
+        <Pressable key={p.id} onPress={() => onChange(p.id)} style={c.result}>
+          <View style={{ flex: 1 }}>
+            <T.Black>{p.name}</T.Black>
+            <T.Muted style={{ fontSize: 12 }}>{mins(p.id)} min acumulados</T.Muted>
+          </View>
+          <T.Black style={{ fontSize: 14, color: colors.accent }}>Usar</T.Black>
+        </Pressable>
+      ))}
+      <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+        <Pressable onPress={() => setAdding(true)} style={c.small}>
+          <T.Black style={{ fontSize: 14, color: colors.accent }}>+ Parque nuevo</T.Black>
+        </Pressable>
+        <Pressable
+          onPress={() => soon('Parques en el mapa', 'Podrás tocar el parque en el mapa del barrio, y la app te sugerirá el parque donde estás. Necesita el GPS del teléfono, que llega en la siguiente versión.')}
+          style={c.small}
+        >
+          <T.Black style={{ fontSize: 14, color: colors.lilacText }}>Elegir en el mapa</T.Black>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+// Fecha y hora como "DD/MM/AAAA" y "HH:MM".
+export function parseTime(text: string) {
+  const m = text.trim().match(/^(\d{1,2})[:.](\d{2})$/);
+  if (!m || Number(m[1]) > 23 || Number(m[2]) > 59) return null;
+  return { hour: Number(m[1]), minute: Number(m[2]) };
+}
+
+const c = StyleSheet.create({
+  wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    minHeight: 44,
+    paddingHorizontal: 14,
+    borderRadius: radius.pill,
+    borderWidth: 2,
+    borderColor: colors.grey,
+    backgroundColor: colors.card,
+  },
+  picked: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 12,
+    borderRadius: 16,
+    backgroundColor: colors.blue,
+    borderWidth: 1.5,
+    borderColor: colors.blueOutline,
+  },
+  result: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 14, backgroundColor: colors.bg },
+  small: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 14, backgroundColor: colors.bg },
 });

@@ -2,11 +2,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 
-import { KIND_INFO, newlyUnlocked, walkXp } from './game';
+import { KIND_INFO, NEW_PARK_XP, newlyUnlocked, walkXp } from './game';
 import type { Achievement } from './game';
 import { emptyData } from './types';
 import { cancel } from './notify';
-import type { AppData, Entry, EntryKind, Pet, Reminder, Report, Vet } from './types';
+import type { AppData, Entry, Park, Pet, Provider, Reminder, Report, Settings, Vet } from './types';
 
 // Por ahora los datos viven en el teléfono. Cuando conectemos Supabase
 // se guardarán también en la nube con la cuenta del dueño.
@@ -29,13 +29,24 @@ type Store = {
   addReminders: (reminders: Omit<Reminder, 'id'>[]) => void;
   removeReminder: (id: string) => void;
   saveVet: (vet: Omit<Vet, 'id'> & { id?: string }) => string;
+  savePark: (park: Omit<Park, 'id'> & { id?: string }) => string;
+  saveProvider: (provider: Omit<Provider, 'id'> & { id?: string }) => string;
+  setSettings: (patch: Partial<Settings>) => void;
   startWalk: () => void;
-  finishWalk: () => number;
+  finishWalk: () => { minutes: number; id: string };
   cancelWalk: () => void;
   reset: () => void;
 };
 
 const Ctx = createContext<Store | null>(null);
+
+// XP de un registro. Un paseo en un parque donde no habían ido antes suma 30 XP extra.
+function entryXp(e: Pick<Entry, 'id' | 'kind' | 'minutes' | 'fields' | 'at'>, others: Entry[]) {
+  if (e.kind !== 'paseo') return KIND_INFO[e.kind].xp;
+  const park = e.fields?.parqueId;
+  const isNew = park && !others.some((o) => o.id !== e.id && o.kind === 'paseo' && o.at < e.at && o.fields?.parqueId === park);
+  return walkXp(e.minutes ?? 0) + (isNew ? NEW_PARK_XP : 0);
+}
 
 function withAchievements(data: AppData, onUnlock: (a: Achievement[]) => void): AppData {
   const fresh = newlyUnlocked(data, Date.now());
@@ -52,7 +63,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     AsyncStorage.getItem(KEY)
       .then((raw) => {
-        if (raw) setData({ ...emptyData, ...JSON.parse(raw) });
+        if (!raw) return;
+        const saved = JSON.parse(raw);
+        setData({ ...emptyData, ...saved, settings: { ...emptyData.settings, ...saved.settings } });
       })
       .catch(() => {})
       .finally(() => setReady(true));
@@ -68,15 +81,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const addEntry = useCallback(
     (e: NewEntry) => {
-      const xp = e.kind === 'paseo' ? walkXp(e.minutes ?? 0) : KIND_INFO[e.kind].xp;
-      const entry: Entry = {
-        ...e,
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        at: e.at ?? Date.now(),
-        xp,
-      };
-      update((d) => ({ ...d, entries: [entry, ...d.entries].sort((a, b) => b.at - a.at) }));
-      return entry.id;
+      const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      update((d) => {
+        const at = e.at ?? Date.now();
+        const entry: Entry = { ...e, id, at, xp: entryXp({ ...e, id, at }, d.entries) };
+        return { ...d, entries: [entry, ...d.entries].sort((a, b) => b.at - a.at) };
+      });
+      return id;
     },
     [update],
   );
@@ -94,13 +105,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setData((d) => ({ ...d, reports: [{ ...r, id: `r-${Date.now()}` }, ...d.reports] })),
       addEntry,
       updateEntry: (id, patch) =>
-        setData((d) => ({
+        update((d) => ({
           ...d,
           entries: d.entries
             .map((e) => {
               if (e.id !== id) return e;
               const next = { ...e, ...patch };
-              return e.kind === 'paseo' ? { ...next, xp: walkXp(next.minutes ?? 0) } : next;
+              return { ...next, xp: entryXp(next, d.entries) };
             })
             .sort((a, b) => b.at - a.at),
         })),
@@ -131,14 +142,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setData((d) => ({ ...d, vets: [{ ...vet, id }, ...d.vets.filter((v) => v.id !== id)] }));
         return id;
       },
+      savePark: (park) => {
+        const id = park.id ?? `parque-${Date.now()}`;
+        setData((d) => ({ ...d, parks: [{ ...park, id }, ...d.parks.filter((p) => p.id !== id)] }));
+        return id;
+      },
+      saveProvider: (provider) => {
+        const id = provider.id ?? `prov-${Date.now()}`;
+        setData((d) => ({ ...d, providers: [{ ...provider, id }, ...d.providers.filter((p) => p.id !== id)] }));
+        return id;
+      },
+      setSettings: (patch) => setData((d) => ({ ...d, settings: { ...d.settings, ...patch } })),
       startWalk: () => setData((d) => ({ ...d, activeWalkStart: Date.now() })),
       finishWalk: () => {
         const start = data.activeWalkStart;
-        if (!start) return 0;
+        if (!start) return { minutes: 0, id: '' };
         const minutes = Math.max(1, Math.round((Date.now() - start) / 60000));
         setData((d) => ({ ...d, activeWalkStart: null }));
-        addEntry({ kind: 'paseo', minutes, at: start });
-        return minutes;
+        const id = addEntry({ kind: 'paseo', minutes, at: start, fields: { tipo: 'paseo' } });
+        return { minutes, id };
       },
       cancelWalk: () => setData((d) => ({ ...d, activeWalkStart: null })),
       reset: () => setData(emptyData),

@@ -8,7 +8,7 @@ import { colors, fonts } from '../lib/theme';
 
 // Resumen del paseo que acaba de terminar, o de los paseos recientes.
 export default function Resumen() {
-  const { min } = useLocalSearchParams<{ min?: string }>();
+  const { min, id } = useLocalSearchParams<{ min?: string; id?: string }>();
   const { data } = useStore();
   const pet = data.pet!;
   const word = activityWord(pet.species);
@@ -36,6 +36,12 @@ export default function Resumen() {
               <T.Eyebrow>XP</T.Eyebrow>
             </View>
           </Card>
+        )}
+        {id && data.entries.some((e) => e.id === id) && (
+          <Button
+            label="Añadir parque, tipo y quién lo llevó"
+            onPress={() => router.push({ pathname: '/salida', params: { id } })}
+          />
         )}
         <Card style={{ gap: 4, backgroundColor: today >= goal ? colors.blue : colors.card }}>
           <T.Black>{today >= goal ? 'Misión del día completada' : 'Misión del día'}</T.Black>
