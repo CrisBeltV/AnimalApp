@@ -10,6 +10,7 @@ import { PetDrawing } from '../../components/PetDrawing';
 import { Bar, Button, Card, EntryRow, T, soon, when } from '../../components/ui';
 import {
   DAY_MS,
+  isIssue,
   activityWord,
   computeStats,
   lastWeight,
@@ -24,6 +25,8 @@ import {
   weekMinutes,
 } from '../../lib/game';
 import { kg } from '../../lib/format';
+import { formatDate } from '../../lib/health';
+import { newEntry } from '../../lib/routes';
 import { useStore } from '../../lib/store';
 import { colors, fonts } from '../../lib/theme';
 import type { AppData, EntryKind } from '../../lib/types';
@@ -43,7 +46,7 @@ const FILTERS: { id: Filter; label: string; icon: IconName }[] = [
 const DAYS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 const dayIndex = (t: number) => (new Date(t).getDay() + 6) % 7;
 
-const add = (kind: EntryKind) => router.push({ pathname: '/registro', params: { tipo: kind } });
+const add = (kind: EntryKind) => newEntry(kind);
 
 // Mi mascota con los 6 íconos de arriba que filtran por tema (como Samsung Health).
 export default function MiMascota() {
@@ -383,64 +386,80 @@ function Cuerpo({ data }: { data: AppData }) {
   );
 }
 
-function HealthRow({ icon, title, detail, kind, alert }: { icon: IconName; title: string; detail: string; kind: EntryKind; alert?: boolean }) {
+function HealthSection({
+  icon,
+  title,
+  empty,
+  kinds,
+  addKind,
+  data,
+  alert,
+}: {
+  icon: IconName;
+  title: string;
+  empty: string;
+  kinds: EntryKind[];
+  addKind: EntryKind;
+  data: AppData;
+  alert?: boolean;
+}) {
+  const list = data.entries.filter((e) => kinds.includes(e.kind)).slice(0, 3);
   return (
-    <Pressable onPress={() => add(kind)} style={[s.healthRow, alert && { borderColor: colors.lost }]}>
-      <View style={[s.healthIcon, { backgroundColor: alert ? colors.lostSoft : colors.blue }]}>
-        <Icon name={icon} size={20} color={alert ? colors.lostText : colors.accent} />
-      </View>
-      <View style={{ flex: 1 }}>
-        <T.Black>{title}</T.Black>
-        <T.Muted style={{ fontSize: 13 }}>{detail}</T.Muted>
-      </View>
-      <Icon name="mas" size={18} color={colors.textMuted} />
-    </Pressable>
+    <Card style={[{ gap: 6 }, alert && { borderWidth: 2, borderColor: colors.lost }]}>
+      <Pressable accessibilityLabel={`Añadir: ${title}`} onPress={() => add(addKind)} style={s.healthHead}>
+        <View style={[s.healthIcon, { backgroundColor: alert ? colors.lostSoft : colors.blue }]}>
+          <Icon name={icon} size={20} color={alert ? colors.lostText : colors.accent} />
+        </View>
+        <T.Black style={{ flex: 1 }}>{title}</T.Black>
+        <View style={s.addChip}>
+          <Icon name="mas" size={16} color={colors.accent} />
+          <T.Black style={{ fontSize: 13, color: colors.accent }}>Añadir</T.Black>
+        </View>
+      </Pressable>
+      {list.length === 0 ? (
+        <T.Muted style={{ fontSize: 13 }}>{empty}</T.Muted>
+      ) : (
+        list.map((e) => <EntryRow key={e.id} entry={e} species={data.pet!.species} />)
+      )}
+    </Card>
   );
 }
 
 function Salud({ data, now }: { data: AppData; now: number }) {
-  const find = (k: EntryKind) => data.entries.find((e) => e.kind === k);
-  const vaccine = find('vacuna');
-  const vet = find('veterinario');
-  const med = find('medicamento');
-  const poops = todayEntries(data.entries, now, 'deposicion');
-  const issues = data.entries.filter(
-    (e) => (e.kind === 'enfermedad' || e.kind === 'lesion') && e.at >= startOfDay(now) - 6 * DAY_MS,
-  );
+  const { removeReminder } = useStore();
+  const upcoming = data.reminders.filter((r) => r.everyHours || r.at > now);
+  const issues = data.entries.filter((e) => isIssue(e) && e.at >= startOfDay(now) - 6 * DAY_MS);
 
   return (
     <>
-      <Intro title="Salud" text="Vacunas, medicinas, citas y señales del día. La app guarda los datos; el diagnóstico siempre es del veterinario." />
-      <HealthRow
-        icon="vacuna"
-        title={vaccine ? `Vacuna: ${vaccine.note ?? 'anotada'}` : 'Sin vacunas anotadas'}
-        detail={vaccine ? when(vaccine.at) : 'Toca para anotar la última vacuna'}
-        kind="vacuna"
-        alert={!vaccine}
-      />
-      <HealthRow
-        icon="medicamento"
-        title={med ? `Medicamento: ${med.note ?? 'anotado'}` : 'Medicamentos'}
-        detail={med ? when(med.at) : 'Desparasitante, pastillas, gotas'}
-        kind="medicamento"
-      />
-      <HealthRow
-        icon="cita"
-        title={vet ? 'Última visita al veterinario' : 'Veterinario'}
-        detail={vet ? `${when(vet.at)}${vet.note ? ` · ${vet.note}` : ''}` : 'Anota cada cita'}
-        kind="veterinario"
-      />
-      <HealthRow
-        icon="deposicion"
-        title={`Deposiciones de hoy: ${poops.length}`}
-        detail={poops[0] ? `Última ${when(poops[0].at)}` : 'Nada anotado hoy'}
-        kind="deposicion"
-      />
-      <HealthRow
+      <Intro title="Salud" text="Vacunas, medicinas, citas y novedades. Toca un registro para editarlo. La app guarda los datos; el diagnóstico siempre es del veterinario." />
+      {upcoming.length > 0 && (
+        <Card style={{ gap: 8, backgroundColor: colors.lilacSoft }}>
+          <T.Black>Próximos recordatorios</T.Black>
+          {upcoming.slice(0, 6).map((r) => (
+            <View key={r.id} style={s.reminder}>
+              <Icon name="reloj" size={18} color={colors.lilacText} />
+              <View style={{ flex: 1 }}>
+                <T.Bold style={{ fontSize: 14 }}>{r.title}</T.Bold>
+                <T.Muted style={{ fontSize: 12 }}>{r.everyHours ? `Cada ${r.everyHours} horas` : formatDate(r.at)}</T.Muted>
+              </View>
+              <Pressable accessibilityLabel={`Quitar recordatorio ${r.title}`} onPress={() => removeReminder(r.id)} style={s.remove}>
+                <T.Black style={{ fontSize: 13, color: colors.lilacText }}>Quitar</T.Black>
+              </Pressable>
+            </View>
+          ))}
+        </Card>
+      )}
+      <HealthSection icon="vacuna" title="Vacunas" empty="Sin vacunas anotadas. Toma foto del carnet o escribe los datos." kinds={['vacuna']} addKind="vacuna" data={data} alert={!data.entries.some((e) => e.kind === 'vacuna')} />
+      <HealthSection icon="medicamento" title="Medicamentos" empty="Desparasitantes, pastillas, gotas. Toma foto de la caja." kinds={['medicamento']} addKind="medicamento" data={data} />
+      <HealthSection icon="cita" title="Veterinario" empty="Anota cada cita y guarda tu veterinaria de confianza." kinds={['veterinario']} addKind="veterinario" data={data} />
+      <HealthSection
         icon="sintoma"
-        title="Síntomas o lesiones"
-        detail={issues.length ? `${issues.length} esta semana${issues[0].note ? ` · ${issues[0].note}` : ''}` : 'Nada anotado esta semana'}
-        kind="enfermedad"
+        title="Novedades o comportamiento inusual"
+        empty="Deposiciones, vómito, babeo, cojera, lesiones y más."
+        kinds={['novedad', 'deposicion', 'enfermedad', 'lesion']}
+        addKind="novedad"
+        data={data}
         alert={issues.length > 0}
       />
     </>
@@ -512,7 +531,8 @@ function Animo({ data, now }: { data: AppData; now: number }) {
       <Button label="Escribir en el diario" kind="solid" onPress={() => add('nota')} />
       {data.entries.length > 0 && (
         <Card>
-          <T.Black style={{ marginBottom: 4 }}>Todo lo anotado</T.Black>
+          <T.Black>Todo lo anotado</T.Black>
+          <T.Muted style={{ fontSize: 13, marginBottom: 4 }}>Toca un registro para editarlo</T.Muted>
           {data.entries.slice(0, 15).map((e) => (
             <EntryRow key={e.id} entry={e} species={pet.species} />
           ))}
@@ -574,15 +594,17 @@ const s = StyleSheet.create({
     borderColor: colors.accent,
     opacity: 0.5,
   },
-  healthRow: {
+  healthHead: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  addChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    backgroundColor: colors.card,
-    borderRadius: 20,
-    padding: 12,
-    borderWidth: 2,
-    borderColor: 'transparent',
+    gap: 4,
+    height: 34,
+    paddingHorizontal: 12,
+    borderRadius: 17,
+    backgroundColor: colors.blue,
   },
+  reminder: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  remove: { paddingHorizontal: 10, height: 32, borderRadius: 16, backgroundColor: '#FFFFFF', justifyContent: 'center' },
   healthIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
 });

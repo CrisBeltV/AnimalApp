@@ -5,13 +5,15 @@ import type { ReactNode } from 'react';
 import { KIND_INFO, newlyUnlocked, walkXp } from './game';
 import type { Achievement } from './game';
 import { emptyData } from './types';
-import type { AppData, Entry, EntryKind, Pet, Report } from './types';
+import { cancel } from './notify';
+import type { AppData, Entry, EntryKind, Pet, Reminder, Report, Vet } from './types';
 
 // Por ahora los datos viven en el teléfono. Cuando conectemos Supabase
 // se guardarán también en la nube con la cuenta del dueño.
 const KEY = 'animaapp:v1';
 
-type NewEntry = { kind: EntryKind; minutes?: number; kg?: number; ml?: number; note?: string; at?: number };
+type NewEntry = Omit<Entry, 'id' | 'xp' | 'at'> & { at?: number };
+type EntryPatch = Partial<Omit<Entry, 'id' | 'kind' | 'xp'>>;
 
 type Store = {
   ready: boolean;
@@ -21,8 +23,12 @@ type Store = {
   createPet: (ownerName: string, pet: Omit<Pet, 'createdAt'>) => void;
   setOwnerName: (name: string) => void;
   addReport: (report: Omit<Report, 'id'>) => void;
-  addEntry: (entry: NewEntry) => void;
+  addEntry: (entry: NewEntry) => string;
+  updateEntry: (id: string, patch: EntryPatch) => void;
   removeEntry: (id: string) => void;
+  addReminders: (reminders: Omit<Reminder, 'id'>[]) => void;
+  removeReminder: (id: string) => void;
+  saveVet: (vet: Omit<Vet, 'id'> & { id?: string }) => string;
   startWalk: () => void;
   finishWalk: () => number;
   cancelWalk: () => void;
@@ -64,12 +70,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     (e: NewEntry) => {
       const xp = e.kind === 'paseo' ? walkXp(e.minutes ?? 0) : KIND_INFO[e.kind].xp;
       const entry: Entry = {
+        ...e,
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         at: e.at ?? Date.now(),
         xp,
-        ...e,
       };
-      update((d) => ({ ...d, entries: [entry, ...d.entries] }));
+      update((d) => ({ ...d, entries: [entry, ...d.entries].sort((a, b) => b.at - a.at) }));
+      return entry.id;
     },
     [update],
   );
@@ -86,7 +93,44 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       addReport: (r) =>
         setData((d) => ({ ...d, reports: [{ ...r, id: `r-${Date.now()}` }, ...d.reports] })),
       addEntry,
-      removeEntry: (id) => setData((d) => ({ ...d, entries: d.entries.filter((e) => e.id !== id) })),
+      updateEntry: (id, patch) =>
+        setData((d) => ({
+          ...d,
+          entries: d.entries
+            .map((e) => {
+              if (e.id !== id) return e;
+              const next = { ...e, ...patch };
+              return e.kind === 'paseo' ? { ...next, xp: walkXp(next.minutes ?? 0) } : next;
+            })
+            .sort((a, b) => b.at - a.at),
+        })),
+      removeEntry: (id) =>
+        setData((d) => {
+          d.reminders.filter((r) => r.entryId === id).forEach((r) => cancel(r.notificationId));
+          return {
+            ...d,
+            entries: d.entries.filter((e) => e.id !== id),
+            reminders: d.reminders.filter((r) => r.entryId !== id),
+          };
+        }),
+      addReminders: (list) =>
+        setData((d) => ({
+          ...d,
+          reminders: [
+            ...d.reminders,
+            ...list.map((r, i) => ({ ...r, id: `rec-${Date.now()}-${i}` })),
+          ].sort((a, b) => a.at - b.at),
+        })),
+      removeReminder: (id) =>
+        setData((d) => {
+          cancel(d.reminders.find((r) => r.id === id)?.notificationId);
+          return { ...d, reminders: d.reminders.filter((r) => r.id !== id) };
+        }),
+      saveVet: (vet) => {
+        const id = vet.id ?? `vet-${Date.now()}`;
+        setData((d) => ({ ...d, vets: [{ ...vet, id }, ...d.vets.filter((v) => v.id !== id)] }));
+        return id;
+      },
       startWalk: () => setData((d) => ({ ...d, activeWalkStart: Date.now() })),
       finishWalk: () => {
         const start = data.activeWalkStart;

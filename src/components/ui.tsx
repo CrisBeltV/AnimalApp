@@ -5,6 +5,7 @@ import type { StyleProp, TextStyle, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { KIND_INFO, activityWord } from '../lib/game';
+import { openEntry } from '../lib/routes';
 import { colors, radius, softShadow, type } from '../lib/theme';
 import type { Entry, Species } from '../lib/types';
 import { Icon } from './Icon';
@@ -152,7 +153,8 @@ export function soon(title: string, text: string) {
   router.push({ pathname: '/pronto', params: { title, text } });
 }
 
-export function EntryRow({ entry, species, onLongPress }: { entry: Entry; species: Species; onLongPress?: () => void }) {
+// Toca un registro para abrirlo y editarlo.
+export function EntryRow({ entry, species }: { entry: Entry; species: Species }) {
   const info = KIND_INFO[entry.kind];
   const label = entry.kind === 'paseo' ? activityWord(species) : info.label;
   const detail =
@@ -164,13 +166,14 @@ export function EntryRow({ entry, species, onLongPress }: { entry: Entry; specie
           ? `${entry.ml} ml`
           : (entry.note ?? '');
   return (
-    <Pressable onLongPress={onLongPress} style={styles.entry}>
+    <Pressable accessibilityHint="Abre el registro para editarlo" onPress={() => openEntry(entry)} style={styles.entry}>
       <Text style={{ fontSize: 22 }}>{info.icon}</Text>
       <View style={{ flex: 1 }}>
         <T.Black style={{ fontSize: 15 }}>{label}</T.Black>
-        {detail ? <T.Muted style={{ fontSize: 13 }}>{detail}</T.Muted> : null}
+        {detail ? <T.Muted style={{ fontSize: 13 }} numberOfLines={2}>{detail}</T.Muted> : null}
       </View>
       <View style={{ alignItems: 'flex-end' }}>
+        {entry.photos?.length ? <Icon name="camara" size={16} color={colors.textMuted} /> : null}
         <T.Black style={{ fontSize: 13, color: colors.accent }}>+{entry.xp} XP</T.Black>
         <T.Muted style={{ fontSize: 12 }}>{when(entry.at)}</T.Muted>
       </View>

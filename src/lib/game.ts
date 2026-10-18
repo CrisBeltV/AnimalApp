@@ -15,6 +15,7 @@ export const KIND_INFO: Record<EntryKind, { label: string; icon: string; xp: num
   veterinario: { label: 'Cita al veterinario', icon: '🩺', xp: 30 },
   enfermedad: { label: 'Síntoma', icon: '🤒', xp: 5 },
   lesion: { label: 'Lesión', icon: '🩹', xp: 5 },
+  novedad: { label: 'Novedad', icon: '⚠️', xp: 5 },
   nota: { label: 'Diario', icon: '📝', xp: 5 },
 };
 
@@ -146,7 +147,7 @@ export function computeStats(data: AppData, now: number): Stats {
   if (year.some((e) => e.kind === 'vacuna')) salud += 20;
   if (year.some((e) => e.kind === 'veterinario')) salud += 20;
   const recentIssues = entries.filter(
-    (e) => (e.kind === 'enfermedad' || e.kind === 'lesion') && e.at >= now - 7 * DAY,
+    (e) => isIssue(e) && e.at >= now - 7 * DAY,
   ).length;
   salud -= recentIssues * 15;
 
@@ -253,4 +254,10 @@ export const ACHIEVEMENTS: Achievement[] = [
 
 export function newlyUnlocked(data: AppData, now: number) {
   return ACHIEVEMENTS.filter((a) => !data.unlocked.includes(a.id) && a.check(data, now));
+}
+
+// Una novedad cuenta como señal de alerta si marca algo distinto de "deposiciones normales".
+export function isIssue(e: Entry) {
+  if (e.kind === 'enfermedad' || e.kind === 'lesion') return true;
+  return e.kind === 'novedad' && (e.signs ?? []).some((s) => s !== 'normales');
 }

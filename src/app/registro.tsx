@@ -4,21 +4,23 @@ import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native
 
 import { Icon } from '../components/Icon';
 import type { IconName } from '../components/Icon';
+import { DeleteEntry, Input, finish } from '../components/form';
 import { BackHeader, Button, T } from '../components/ui';
 import { KIND_INFO, activityWord } from '../lib/game';
+import { formatDate, parseDate } from '../lib/health';
+import { newEntry } from '../lib/routes';
 import { useStore } from '../lib/store';
 import { colors, fonts, radius } from '../lib/theme';
-import type { EntryKind } from '../lib/types';
+import type { Entry, EntryKind } from '../lib/types';
 
 const ITEMS: { kind: EntryKind; label?: string; icon: IconName }[] = [
   { kind: 'comida', icon: 'comida' },
   { kind: 'agua', icon: 'agua' },
   { kind: 'peso', icon: 'cuerpo' },
-  { kind: 'deposicion', icon: 'deposicion' },
   { kind: 'medicamento', icon: 'medicamento' },
   { kind: 'vacuna', icon: 'vacuna' },
   { kind: 'veterinario', icon: 'cita' },
-  { kind: 'enfermedad', label: 'Síntoma o lesión', icon: 'sintoma' },
+  { kind: 'novedad', label: 'Novedades', icon: 'sintoma' },
   { kind: 'paseo', icon: 'reloj' },
   { kind: 'nota', label: 'Diario', icon: 'animo' },
 ];
@@ -29,60 +31,67 @@ const NUMBER: Partial<Record<EntryKind, { label: string; placeholder: string }>>
   agua: { label: 'Mililitros', placeholder: '250' },
 };
 
+// Vacuna, medicamento, veterinario y novedades tienen su propia ventana (ver lib/routes).
+const OWN_SCREEN: EntryKind[] = ['vacuna', 'medicamento', 'veterinario', 'novedad', 'deposicion', 'enfermedad', 'lesion'];
+
 const NOTE_HINT: Partial<Record<EntryKind, string>> = {
   comida: '150 g de concentrado',
-  deposicion: 'Normal',
-  medicamento: 'Desparasitante',
-  vacuna: 'Rabia',
-  veterinario: 'Control general, Dra. Gómez',
-  enfermedad: 'Vómito desde ayer',
-  lesion: 'Corte en la pata',
   nota: 'Jugó con Luna en el parque y llegó cansada pero feliz.',
 };
 
 const toNumber = (t: string) => Number(t.replace(',', '.'));
 
-// Botón + : "Añadir rápidamente", como en la maqueta.
+const amountOf = (e?: Entry) => {
+  const n = e?.minutes ?? e?.kg ?? e?.ml;
+  return n === undefined ? '' : String(n).replace('.', ',');
+};
+
+// Botón + : "Añadir rápidamente", como en la maqueta. Con id, edita un registro.
 export default function Registro() {
-  const params = useLocalSearchParams<{ tipo?: EntryKind }>();
-  const { data, addEntry, startWalk } = useStore();
+  const params = useLocalSearchParams<{ tipo?: EntryKind; id?: string }>();
+  const { data, addEntry, updateEntry, removeEntry, startWalk } = useStore();
   const pet = data.pet!;
   const word = activityWord(pet.species);
-  const [kind, setKind] = useState<EntryKind | null>(params.tipo ?? null);
-  const [amount, setAmount] = useState('');
-  const [note, setNote] = useState('');
+  const editing = data.entries.find((e) => e.id === params.id);
+  const [kind, setKind] = useState<EntryKind | null>(editing?.kind ?? params.tipo ?? null);
+  const [amount, setAmount] = useState(amountOf(editing));
+  const [note, setNote] = useState(editing?.note ?? '');
+  const [date, setDate] = useState(editing ? formatDate(editing.at) : '');
+
+  const pick = (k: EntryKind) => (OWN_SCREEN.includes(k) ? newEntry(k, true) : setKind(k));
 
   const label = (k: EntryKind) => (k === 'paseo' ? `${word} ya hecho` : KIND_INFO[k].label);
 
   if (kind) {
     const num = NUMBER[kind];
-    const valid = (!num || toNumber(amount) > 0) && (kind !== 'nota' || note.trim().length > 0);
+    const day = editing ? parseDate(date) : null;
+    const valid =
+      (!num || toNumber(amount) > 0) && (kind !== 'nota' || note.trim().length > 0) && (!editing || day !== null);
     const save = () => {
-      addEntry({
-        kind,
+      const values = {
         minutes: kind === 'paseo' ? toNumber(amount) : undefined,
         kg: kind === 'peso' ? toNumber(amount) : undefined,
         ml: kind === 'agua' ? toNumber(amount) : undefined,
         note: note.trim() || undefined,
-      });
-      router.back();
+      };
+      if (editing && day !== null) {
+        // Se conserva la hora original y se cambia el día si lo corrigieron.
+        const old = new Date(editing.at);
+        const at = new Date(day);
+        at.setHours(old.getHours(), old.getMinutes());
+        updateEntry(editing.id, { ...values, at: at.getTime() });
+      } else {
+        addEntry({ kind, ...values });
+      }
+      finish();
     };
     return (
       <View style={{ flex: 1, backgroundColor: colors.bg }}>
         <BackHeader
-          title={kind === 'enfermedad' || kind === 'lesion' ? 'Síntoma o lesión' : label(kind)}
-          onBack={() => (params.tipo ? router.back() : setKind(null))}
+          title={editing ? `Editar: ${label(kind).toLowerCase()}` : label(kind)}
+          onBack={() => (params.tipo || editing ? router.back() : setKind(null))}
         />
         <ScrollView contentContainerStyle={s.page} keyboardShouldPersistTaps="handled">
-          {(kind === 'enfermedad' || kind === 'lesion') && (
-            <View style={s.row}>
-              {(['enfermedad', 'lesion'] as EntryKind[]).map((k) => (
-                <Pressable key={k} onPress={() => setKind(k)} style={[s.choice, kind === k && s.choiceActive]}>
-                  <T.Black>{k === 'enfermedad' ? 'Síntoma' : 'Lesión'}</T.Black>
-                </Pressable>
-              ))}
-            </View>
-          )}
           {kind === 'agua' && (
             <View style={s.row}>
               {['100', '250', '500'].map((v) => (
@@ -114,8 +123,10 @@ export default function Registro() {
             style={[s.input, { minHeight: 80, textAlignVertical: 'top', paddingTop: 12 }]}
             multiline
           />
-          <T.Muted>{kind === 'paseo' ? 'Gana XP según los minutos.' : `Gana ${KIND_INFO[kind].xp} XP.`}</T.Muted>
-          <Button label="Guardar" kind="solid" onPress={save} disabled={!valid} />
+          {editing && <Input field={{ key: 'fecha', label: 'Fecha', placeholder: 'DD/MM/AAAA', date: true, required: true }} value={date} onChange={setDate} />}
+          {!editing && <T.Muted>{kind === 'paseo' ? 'Gana XP según los minutos.' : `Gana ${KIND_INFO[kind].xp} XP.`}</T.Muted>}
+          <Button label={editing ? 'Guardar cambios' : 'Guardar'} kind="solid" onPress={save} disabled={!valid} />
+          {editing && <DeleteEntry onDelete={() => (removeEntry(editing.id), finish())} />}
         </ScrollView>
       </View>
     );
@@ -143,7 +154,7 @@ export default function Registro() {
         <T.Black style={{ color: colors.textMuted }}>Registrar a mano</T.Black>
         <View style={s.grid}>
           {ITEMS.map((it) => (
-            <Pressable key={it.kind} onPress={() => setKind(it.kind)} style={s.item}>
+            <Pressable key={it.kind} onPress={() => pick(it.kind)} style={s.item}>
               <View style={s.itemIcon}>
                 <Icon name={it.icon} size={22} />
               </View>

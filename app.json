@@ -34,7 +34,15 @@
           "asyncRoutes": false
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Animaapp usa la cámara para fotografiar el carnet de vacunas y las cajas de medicamentos de tu mascota.",
+          "photosPermission": "Animaapp usa tus fotos para guardar el carnet de vacunas y las cajas de medicamentos de tu mascota."
+        }
+      ],
+      "expo-notifications"
     ],
     "scheme": "animaapp",
     "splash": {

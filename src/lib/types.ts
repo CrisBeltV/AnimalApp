@@ -19,6 +19,7 @@ export type EntryKind =
   | 'veterinario'
   | 'enfermedad'
   | 'lesion'
+  | 'novedad'
   | 'nota';
 
 export type Entry = {
@@ -30,6 +31,33 @@ export type Entry = {
   ml?: number; // agua
   note?: string;
   xp: number;
+  // Fichas de vacuna, medicamento y veterinario: campo -> valor escrito.
+  fields?: Record<string, string>;
+  // Fotos del carnet o de la caja (frente y reverso).
+  photos?: string[];
+  // Novedades o comportamiento inusual marcados.
+  signs?: string[];
+};
+
+// Recordatorio agendado al terminar un registro (1 día, 1 semana o 1 mes antes).
+export type Reminder = {
+  id: string;
+  entryId: string;
+  title: string;
+  at: number; // fecha del aviso; en las tomas, desde cuándo empieza
+  everyHours?: number; // tomas de un medicamento: se repite cada tantas horas
+  notificationId?: string;
+};
+
+// Veterinaria guardada por el dueño. Más adelante se unirá con las veterinarias
+// y tiendas registradas como aliadas en la app.
+export type Vet = {
+  id: string;
+  name: string;
+  address?: string;
+  place?: string;
+  doctor?: string;
+  phone?: string;
 };
 
 export type ReportKind = 'perdida' | 'encontrada';
@@ -57,6 +85,8 @@ export type AppData = {
   reports: Report[];
   activeWalkStart: number | null;
   unlocked: string[]; // ids de logros ya ganados
+  reminders: Reminder[];
+  vets: Vet[];
 };
 
 export const emptyData: AppData = {
@@ -66,4 +96,6 @@ export const emptyData: AppData = {
   reports: [],
   activeWalkStart: null,
   unlocked: [],
+  reminders: [],
+  vets: [],
 };
