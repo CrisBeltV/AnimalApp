@@ -7,7 +7,7 @@ import { Icon } from './Icon';
 import type { IconName } from './Icon';
 
 // Barra flotante de la maqueta: Mi mascota · INICIO (Paseo) · Comunidad, y aparte el botón +.
-// La pestaña abierta se ilumina en azul y su ícono crece; Inicio es el círculo grande del centro.
+// Los tres botones son del mismo tamaño; el elegido crece, con fondo azul e ícono blanco.
 const TABS: Record<string, { label: string; icon: IconName }> = {
   mascota: { label: 'Mi mascota', icon: 'mascota' },
   index: { label: 'Inicio', icon: 'huella' },
@@ -22,35 +22,19 @@ export function BottomBar({ state, navigateToTab, insets }: BottomTabBarProps) {
           const tab = TABS[route.name];
           if (!tab) return null;
           const active = state.index === i;
-          const color = active ? colors.accent : colors.textMuted;
-          if (route.name === 'index') {
-            return (
-              <Pressable
-                key={route.key}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: active }}
-                onPress={() => navigateToTab(route.key)}
-                style={[s.centerItem, { marginTop: active ? -58 : -42 }]}
-              >
-                <View style={[s.center, active ? s.centerActive : s.centerIdle]}>
-                  <Icon name="huella" size={active ? 44 : 34} color={active ? '#FFFFFF' : colors.accent} />
-                </View>
-                <Text style={[s.label, { color, fontWeight: active ? '800' : '700' }]}>{tab.label}</Text>
-              </Pressable>
-            );
-          }
           return (
             <Pressable
               key={route.key}
               accessibilityRole="tab"
               accessibilityState={{ selected: active }}
+              accessibilityLabel={tab.label}
               onPress={() => navigateToTab(route.key)}
-              style={s.item}
+              style={[s.item, { marginTop: active ? -34 : 0 }]}
             >
-              <View style={[s.side, active && s.sideActive]}>
-                <Icon name={tab.icon} size={active ? 30 : 24} color={color} strokeWidth={active ? 2.2 : 2} />
+              <View style={[s.circle, active ? s.circleActive : s.circleIdle]}>
+                <Icon name={tab.icon} size={active ? 34 : 24} color={active ? '#FFFFFF' : colors.accent} strokeWidth={active ? 2.4 : 2} />
               </View>
-              <Text style={[s.label, { color, fontWeight: active ? '800' : '700' }]}>{tab.label}</Text>
+              <Text style={[s.label, { color: active ? colors.accent : colors.textMuted, fontWeight: active ? '800' : '700' }]}>{tab.label}</Text>
             </Pressable>
           );
         })}
@@ -80,38 +64,21 @@ const s = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 14,
+    paddingHorizontal: 6,
   },
-  item: { width: 76, alignItems: 'center', gap: 2 },
-  side: { width: 52, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
-  sideActive: {
-    backgroundColor: colors.blueTint,
-    shadowColor: colors.accent,
-    shadowOpacity: 0.55,
-    shadowRadius: 7,
-    shadowOffset: { width: 0, height: 0 },
-  },
-  centerItem: { alignItems: 'center', gap: 2 },
-  center: { borderWidth: 5, borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
-  centerIdle: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    backgroundColor: colors.blue,
-    shadowColor: '#1F2A3A',
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 6 },
-  },
-  centerActive: {
-    width: 92,
-    height: 92,
-    borderRadius: 46,
+  item: { flex: 1, alignItems: 'center', gap: 2 },
+  circle: { alignItems: 'center', justifyContent: 'center' },
+  circleIdle: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.blue },
+  circleActive: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    borderWidth: 4,
+    borderColor: '#FFFFFF',
     backgroundColor: colors.accent,
     shadowColor: colors.accent,
-    shadowOpacity: 0.6,
-    shadowRadius: 13,
+    shadowOpacity: 0.55,
+    shadowRadius: 11,
     shadowOffset: { width: 0, height: 0 },
     elevation: 8,
   },

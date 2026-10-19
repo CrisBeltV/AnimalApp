@@ -2,10 +2,10 @@ import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
-import { Chips, DeleteEntry, Input, ProviderPicker, ReminderSheet, finish } from '../components/form';
+import { Check, Chips, DeleteEntry, Input, ProviderPicker, ReminderSheet, finish } from '../components/form';
 import type { RemindTarget } from '../components/form';
 import { BackHeader, Button, Card, T } from '../components/ui';
-import { GROOMING } from '../lib/game';
+import { GROOMING, groomingTypes } from '../lib/game';
 import { formatDate, parseDate } from '../lib/health';
 import { useStore } from '../lib/store';
 import { colors } from '../lib/theme';
@@ -15,14 +15,16 @@ const WHO = [
   { id: 'peluqueria', label: 'Peluquería o groomer' },
 ];
 
-// Baño, corte de uñas y peluquería, con la próxima fecha y su recordatorio.
+// Higiene y cuidados (baño, uñas, peluquería, desparasitación, oídos, otro): uno o varios a la vez,
+// con la próxima fecha y su recordatorio.
 export default function Higiene() {
   const params = useLocalSearchParams<{ id?: string }>();
   const { data, addEntry, updateEntry, removeEntry } = useStore();
   const pet = data.pet!;
   const editing = data.entries.find((e) => e.id === params.id);
   const f = editing?.fields ?? {};
-  const [tipo, setTipo] = useState(f.tipo ?? 'bano');
+  const [tipos, setTipos] = useState<string[]>(editing ? groomingTypes(editing) : []);
+  const [other, setOther] = useState(f.otro ?? '');
   const [date, setDate] = useState(formatDate(editing?.at ?? Date.now()));
   const [who, setWho] = useState(f.peluqueriaId ? 'peluqueria' : 'yo');
   const [groomer, setGroomer] = useState<string | undefined>(f.peluqueriaId);
@@ -32,11 +34,16 @@ export default function Higiene() {
   const [targets, setTargets] = useState<RemindTarget[]>([]);
 
   const day = parseDate(date);
-  const label = GROOMING.find((g) => g.id === tipo)!.label;
-  const valid = day !== null && (!next.trim() || parseDate(next) !== null);
+  const toggle = (id: string) => setTipos((l) => (l.includes(id) ? l.filter((x) => x !== id) : [...l, id]));
+  const label = tipos
+    .map((id) => (id === 'otro' && other.trim() ? other.trim() : GROOMING.find((g) => g.id === id)?.label))
+    .filter(Boolean)
+    .join(', ');
+  const valid = tipos.length > 0 && day !== null && (!next.trim() || parseDate(next) !== null);
 
   const save = () => {
-    const fields: Record<string, string> = { tipo };
+    const fields: Record<string, string> = { tipo: tipos[0], tipos: tipos.join(',') };
+    if (tipos.includes('otro') && other.trim()) fields.otro = other.trim();
     if (who === 'peluqueria' && groomer) fields.peluqueriaId = groomer;
     if (next.trim()) fields.proxima = next.trim();
     if (note.trim()) fields.nota = note.trim();
@@ -63,10 +70,17 @@ export default function Higiene() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <BackHeader title={editing ? 'Editar higiene' : 'Baño, uñas o peluquería'} subtitle={pet.name} />
+      <BackHeader title={editing ? 'Editar higiene' : 'Higiene y cuidados'} subtitle={pet.name} />
       <ScrollView contentContainerStyle={s.page} keyboardShouldPersistTaps="handled">
-        <T.Black>¿Qué le hiciste?</T.Black>
-        <Chips options={GROOMING} value={tipo} onChange={setTipo} />
+        <T.Black>¿Qué le hiciste? Puedes elegir varias</T.Black>
+        <View style={{ gap: 8 }}>
+          {GROOMING.map((g) => (
+            <Check key={g.id} label={`${g.icon} ${g.label}`} on={tipos.includes(g.id)} onPress={() => toggle(g.id)} />
+          ))}
+        </View>
+        {tipos.includes('otro') && (
+          <Input field={{ key: 'otro', label: '¿Qué otro cuidado?', placeholder: 'Limpieza de dientes, glándulas…' }} value={other} onChange={setOther} />
+        )}
         <Input field={{ key: 'fecha', label: 'Fecha', placeholder: 'DD/MM/AAAA', date: true, required: true }} value={date} onChange={setDate} />
         <Card style={{ gap: 10 }}>
           <T.Black>¿Quién lo hizo?</T.Black>

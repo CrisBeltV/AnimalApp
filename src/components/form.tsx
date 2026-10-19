@@ -10,6 +10,7 @@ import { useStore } from '../lib/store';
 import { colors, fonts, radius, shadow } from '../lib/theme';
 import { parkBadge, parkMinutes } from '../lib/game';
 import type { ProviderType, Reminder } from '../lib/types';
+import { CalendarSheet } from './Calendar';
 import { Icon } from './Icon';
 import { Button, Card, T, soon } from './ui';
 
@@ -27,6 +28,7 @@ export function Input({
   missing?: boolean;
 }) {
   const badDate = field.date && value.trim() !== '' && parseDate(value) === null;
+  const [calendar, setCalendar] = useState(false);
   return (
     <View style={{ gap: 6 }}>
       <View style={s.labelRow}>
@@ -39,7 +41,24 @@ export function Input({
             <T.Black style={{ fontSize: 13 }}>Hoy</T.Black>
           </Pressable>
         )}
+        {field.date && (
+          <Pressable accessibilityLabel={`Calendario: ${field.label}`} onPress={() => setCalendar(true)} style={[s.chip, { backgroundColor: colors.lilacSoft }]}>
+            <T.Black style={{ fontSize: 13 }}>📅 Calendario</T.Black>
+          </Pressable>
+        )}
       </View>
+      {field.date && (
+        <CalendarSheet
+          visible={calendar}
+          value={value}
+          title={field.label}
+          onClose={() => setCalendar(false)}
+          onPick={(d) => {
+            onChange(d);
+            setCalendar(false);
+          }}
+        />
+      )}
       <TextInput
         value={value}
         onChangeText={onChange}

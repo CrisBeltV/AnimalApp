@@ -16,6 +16,8 @@ import {
   missionGoal,
   mood,
   startOfDay,
+  todayEntries,
+  waterGoal,
 } from '../../lib/game';
 import { clock } from '../../lib/format';
 import { useStore } from '../../lib/store';
@@ -29,6 +31,7 @@ export default function Inicio() {
   const walking = data.activeWalkStart !== null;
   const now = useNow(walking ? 1000 : 30000);
   const [menu, setMenu] = useState(false);
+  const [missions, setMissions] = useState(false);
   const pet = data.pet!;
   const word = activityWord(pet.species);
   const petMood = mood(computeStats(data, now));
@@ -37,13 +40,27 @@ export default function Inicio() {
   const today = minutesOn(data.entries, startOfDay(now));
   const done = today >= goal;
 
-  const goWalk = () => {
+  const meals = todayEntries(data.entries, now, 'comida').length;
+  const mealGoal = Math.max(1, data.settings.mealTimes.length);
+  const water = todayEntries(data.entries, now, 'agua').reduce((sum, e) => sum + (e.ml ?? 0), 0);
+  const water100 = waterGoal(data);
+  const list = [
+    {
+      title: done ? `¡Misión cumplida con ${pet.name}!` : `${word === 'Juego' ? 'Juega' : 'Pasea'} ${goal} min con ${pet.name}`,
+      value: today / goal,
+      text: `${Math.min(Math.round(today), goal)}/${goal} min · +${MISSION_XP} XP`,
+      go: '/paseos' as const,
+    },
+    { title: 'Anota sus comidas', value: meals / mealGoal, text: `${Math.min(meals, mealGoal)}/${mealGoal} comidas`, go: '/mascota' as const },
+    { title: 'Que tome su agua', value: water / water100, text: `${water}/${water100} ml`, go: '/mascota' as const },
+  ];
+  const doneCount = list.filter((m) => m.value >= 1).length;
+
+  const go = (path: '/paseos' | '/paseo' | '/explorar' | '/parques' | '/mascota') => () => {
     setMenu(false);
-    router.push('/paseo');
-  };
-  const go = (path: '/resumen' | '/explorar' | '/parques') => () => {
-    setMenu(false);
-    router.push(path);
+    setMissions(false);
+    if (path === '/mascota') router.navigate(path);
+    else router.push(path);
   };
 
   return (
@@ -63,21 +80,21 @@ export default function Inicio() {
         <AccountButton />
       </View>
 
-      <View style={[s.mission, shadow, { top: insets.top + 74 }]}>
-        <T.Eyebrow>MISIÓN DEL DÍA</T.Eyebrow>
-        <T.Display style={{ fontSize: 18 }}>
-          {done ? `¡Misión cumplida con ${pet.name}!` : `${word === 'Juego' ? 'Juega' : 'Pasea'} ${goal} min con ${pet.name}`}
-        </T.Display>
-        <View style={s.missionRow}>
-          <Bar value={(today / goal) * 100} />
-          <T.Black style={{ fontSize: 14 }}>
-            {Math.min(Math.round(today), goal)}/{goal} min · +{MISSION_XP} XP
-          </T.Black>
+      <Pressable
+        accessibilityLabel="Misiones del día"
+        onPress={() => setMissions(true)}
+        style={[s.roundBtn, softShadow, { top: insets.top + 70 }]}
+      >
+        <Icon name="estrella" size={22} color={colors.accent} strokeWidth={2.4} />
+        <View style={[s.badge, doneCount === list.length && { backgroundColor: colors.found }]}>
+          <Text style={s.badgeText}>
+            {doneCount}/{list.length}
+          </Text>
         </View>
-      </View>
+      </Pressable>
 
       {walking && (
-        <Pressable onPress={() => router.push('/paseo')} style={[s.walkBanner, shadow, { top: insets.top + 186 }]}>
+        <Pressable onPress={() => router.push('/paseo')} style={[s.walkBanner, shadow, { top: insets.top + 70 }]}>
           <View style={s.liveDot} />
           <T.Black style={{ flex: 1, color: '#FFFFFF' }}>{word} en curso</T.Black>
           <Text style={s.walkClock}>{clock(now - data.activeWalkStart!)}</Text>
@@ -88,7 +105,7 @@ export default function Inicio() {
       <Pressable
         accessibilityLabel="Conquista de parques"
         onPress={() => router.push('/parques')}
-        style={[s.flag, softShadow, { top: insets.top + (walking ? 244 : 186) }]}
+        style={[s.roundBtn, softShadow, { top: insets.top + 126 }]}
       >
         <Icon name="bandera" size={22} color={colors.accent} strokeWidth={2.4} />
       </Pressable>
@@ -146,18 +163,30 @@ export default function Inicio() {
             compact
             icon="reloj"
             title={walking ? `${word} en curso` : `Iniciar ${word.toLowerCase()} con ${pet.name}`}
-            detail={walking ? `Llevas ${clock(now - data.activeWalkStart!)}` : 'Elige tu objetivo y sal'}
-            onPress={goWalk}
-          />
-          <MenuRow
-            compact
-            icon="lista"
-            title={`Resumen de ${word === 'Juego' ? 'juegos' : 'paseos'}`}
-            detail={`Hoy: ${Math.round(today)} min`}
-            onPress={go('/resumen')}
+            detail={walking ? `Llevas ${clock(now - data.activeWalkStart!)}` : 'Nuevo, recurrente o resumen'}
+            onPress={go(walking ? '/paseo' : '/paseos')}
           />
           <MenuRow compact icon="mapa" title="Mapa de exploración" detail="Parques, tiendas, veterinarias…" onPress={go('/explorar')} />
           <MenuRow compact icon="bandera" tint="lilac" title="Parques" detail={`${data.parks.length} guardados · conquista`} onPress={go('/parques')} />
+        </View>
+      </Modal>
+
+      <Modal transparent visible={missions} animationType="fade" onRequestClose={() => setMissions(false)}>
+        <Pressable accessibilityLabel="Cerrar misiones" style={s.backdrop} onPress={() => setMissions(false)} />
+        <View style={[s.missions, shadow, { top: insets.top + 64 }]}>
+          <T.Eyebrow>MISIONES DEL DÍA</T.Eyebrow>
+          {list.map((m) => (
+            <Pressable key={m.title} onPress={go(m.go)} style={s.missionRow}>
+              <T.Black style={{ fontSize: 15 }}>
+                {m.value >= 1 ? '✅ ' : ''}
+                {m.title}
+              </T.Black>
+              <View style={s.missionBar}>
+                <Bar value={m.value * 100} color={m.value >= 1 ? colors.found : colors.accent} />
+                <T.Black style={{ fontSize: 13 }}>{m.text}</T.Black>
+              </View>
+            </Pressable>
+          ))}
         </View>
       </Modal>
     </View>
@@ -184,21 +213,35 @@ const s = StyleSheet.create({
     paddingLeft: 18,
     paddingRight: 14,
   },
-  mission: {
+  missions: {
     position: 'absolute',
-    left: 16,
     right: 16,
-    backgroundColor: 'rgba(255,255,255,0.94)',
+    width: 300,
+    maxWidth: '92%',
+    backgroundColor: '#FFFFFF',
     borderRadius: 20,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    gap: 6,
+    padding: 14,
+    gap: 12,
   },
-  missionRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  missionRow: { gap: 4 },
+  missionBar: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  badge: {
+    position: 'absolute',
+    bottom: -6,
+    right: -8,
+    minWidth: 26,
+    height: 18,
+    paddingHorizontal: 4,
+    borderRadius: 9,
+    backgroundColor: colors.lilacStrong,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: { color: '#FFFFFF', fontSize: 10, fontWeight: '800', fontFamily: fonts.bodyBlack },
   walkBanner: {
     position: 'absolute',
     left: 16,
-    right: 16,
+    right: 76,
     height: 48,
     borderRadius: 24,
     backgroundColor: colors.accent,
@@ -209,7 +252,7 @@ const s = StyleSheet.create({
   },
   liveDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#9EE6A8' },
   walkClock: { color: '#FFFFFF', fontFamily: fonts.display, fontWeight: '700', fontSize: 20 },
-  flag: {
+  roundBtn: {
     position: 'absolute',
     right: 16,
     width: 44,

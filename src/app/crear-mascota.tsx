@@ -3,8 +3,10 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Input } from '../components/form';
 import { PetDrawing } from '../components/PetDrawing';
 import { Button, T } from '../components/ui';
+import { parseDate } from '../lib/health';
 import { useStore } from '../lib/store';
 import { colors, fonts, radius } from '../lib/theme';
 import type { Species } from '../lib/types';
@@ -19,14 +21,20 @@ export default function CrearMascota() {
   const [breed, setBreed] = useState('');
   const [birthDate, setBirthDate] = useState('');
 
-  const dateOk = birthDate === '' || /^\d{4}-\d{2}-\d{2}$/.test(birthDate);
+  const born = parseDate(birthDate);
+  const dateOk = birthDate.trim() === '' || born !== null;
+  const two = (n: number) => String(n).padStart(2, '0');
+  const iso = (t: number) => {
+    const d = new Date(t);
+    return `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())}`;
+  };
 
   function save() {
     createPet(owner.trim(), {
       name: name.trim(),
       species,
       breed: breed.trim(),
-      birthDate: birthDate || undefined,
+      birthDate: born !== null ? iso(born) : undefined,
     });
     router.replace('/');
   }
@@ -59,15 +67,9 @@ export default function CrearMascota() {
       <T.Black style={s.label}>Raza (opcional)</T.Black>
       <TextInput value={breed} onChangeText={setBreed} placeholder="Criollo" placeholderTextColor={colors.textMuted} style={s.input} />
 
-      <T.Black style={s.label}>Fecha de nacimiento (opcional)</T.Black>
-      <TextInput
-        value={birthDate}
-        onChangeText={setBirthDate}
-        placeholder="AAAA-MM-DD"
-        placeholderTextColor={colors.textMuted}
-        style={[s.input, !dateOk && { borderColor: colors.bad }]}
-      />
-      {!dateOk && <T.Bold style={{ color: colors.bad }}>Escríbela así: 2021-05-30</T.Bold>}
+      <View style={{ marginTop: 8 }}>
+        <Input field={{ key: 'nacimiento', label: 'Fecha de nacimiento (opcional)', placeholder: 'DD/MM/AAAA', date: true }} value={birthDate} onChange={setBirthDate} />
+      </View>
 
       <Button label="Empezar" kind="solid" style={{ marginTop: 20 }} onPress={save} disabled={!owner.trim() || !name.trim() || !dateOk} />
     </ScrollView>

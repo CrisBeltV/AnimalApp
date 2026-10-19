@@ -3,11 +3,11 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Check, Chips, ParkPicker } from '../components/form';
+import { Check, Chips, Input, ParkPicker } from '../components/form';
 import { GameMap } from '../components/GameMap';
 import { PetDrawing } from '../components/PetDrawing';
 import { Bar, Button, T } from '../components/ui';
-import { MISSION_XP, NEW_PARK_XP, WALK_GOALS, WALK_TYPES, activityWord, computeStats, minutesOn, missionGoal, mood, parkStats, startOfDay } from '../lib/game';
+import { MISSION_XP, NEW_PARK_XP, WALK_GOALS, WALK_TYPES, activityWord, computeStats, goalText, minutesOn, missionGoal, mood, parkStats, sameGoal, startOfDay } from '../lib/game';
 import { clock } from '../lib/format';
 import { useStore } from '../lib/store';
 import { colors, fonts, shadow } from '../lib/theme';
@@ -31,28 +31,41 @@ const KM_GOALS = [
 
 // Paseo en tres pasos: elegir el objetivo, el cronómetro en vivo y el resumen al terminar.
 export default function PaseoEnCurso() {
-  const params = useLocalSearchParams<{ parque?: string }>();
-  const { data, startWalk, finishWalk, cancelWalk } = useStore();
+  const params = useLocalSearchParams<{ parque?: string; rutina?: string }>();
+  const { data, startWalk, finishWalk, cancelWalk, saveRoutine } = useStore();
   const insets = useSafeAreaInsets();
   const now = useNow(1000);
   const pet = data.pet!;
   const word = activityWord(pet.species);
   const start = data.activeWalkStart;
+  const routines = data.routines ?? [];
+  const routine = routines.find((r) => r.id === params.rutina);
   const [summaryId, setSummaryId] = useState<string | null>(null);
-  const [tipo, setTipo] = useState(pet.species === 'gato' ? 'juego' : 'paseo');
-  const [time, setTime] = useState('30');
-  const [km, setKm] = useState('0');
-  const [park, setPark] = useState<string | undefined>(params.parque);
-  const [explore, setExplore] = useState(false);
+  const [tipo, setTipo] = useState(routine?.tipo ?? (pet.species === 'gato' ? 'juego' : 'paseo'));
+  const [time, setTime] = useState(routine ? String(routine.minutes ?? 0) : '30');
+  const [km, setKm] = useState(routine ? String(routine.km ?? 0) : '0');
+  const [park, setPark] = useState<string | undefined>(routine?.parqueId ?? params.parque);
+  const [explore, setExplore] = useState(!!routine?.explorar);
+  const [name, setName] = useState(routine?.name ?? '');
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
-  const begin = () => {
+  const goalNow = (): WalkGoal => {
     const goal: WalkGoal = { tipo };
     if (Number(time) > 0) goal.minutes = Number(time);
     if (Number(km) > 0) goal.km = Number(km);
     if (park) goal.parqueId = park;
     if (explore) goal.explorar = true;
+    return goal;
+  };
+  const known = routines.find((r) => sameGoal(r, goalNow()));
+
+  // Cada objetivo nuevo queda guardado como paseo recurrente.
+  const begin = () => {
+    const goal = goalNow();
+    const label = name.trim();
+    if (!known) saveRoutine({ ...goal, name: label || goalText(goal, data.parks) });
+    else if (label && label !== known.name) saveRoutine({ ...known, name: label });
     startWalk(goal);
   };
 
@@ -122,6 +135,10 @@ export default function PaseoEnCurso() {
         <T.Black>Conquista: ¿en qué parque?</T.Black>
         <ParkPicker value={park} onChange={setPark} />
         <Check label="Exploración: visitar un parque nuevo" detail={`+${NEW_PARK_XP} XP al registrar un parque donde no hayan ido`} on={explore} onPress={() => setExplore(!explore)} />
+        <Input field={{ key: 'nombre', label: 'Nombre (opcional)', placeholder: known?.name ?? 'Paseo de la tarde' }} value={name} onChange={setName} />
+        <T.Muted style={{ fontSize: 12 }}>
+          {known ? `Ya está en tus recurrentes como "${known.name}".` : 'Este objetivo quedará guardado en tus paseos recurrentes.'}
+        </T.Muted>
         <Button label={`Empezar ${word.toLowerCase()} con ${pet.name}`} kind="solid" onPress={begin} />
         <Button label="Volver" kind="secondary" onPress={back} />
       </>

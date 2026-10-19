@@ -1,5 +1,5 @@
 import { parseDate } from './health';
-import type { AppData, Entry, EntryKind, Species } from './types';
+import type { AppData, Entry, EntryKind, Park, Species, WalkGoal } from './types';
 
 export const MAX_LEVEL = 15;
 const DAY = 24 * 60 * 60 * 1000;
@@ -318,6 +318,24 @@ export const WALK_TYPES = [
   { id: 'guarderia', label: 'Guardería' },
 ];
 
+// Descripción corta de un objetivo de paseo: "Entrenamiento · 30 min · 2 km · Parque Villa Luz".
+export function goalText(goal: WalkGoal, parks: Park[]) {
+  const park = parks.find((p) => p.id === goal.parqueId)?.name;
+  return [
+    WALK_TYPES.find((w) => w.id === goal.tipo)?.label ?? goal.tipo,
+    goal.minutes ? `${goal.minutes} min` : 'tiempo libre',
+    goal.km ? `${goal.km} km` : null,
+    park,
+    goal.explorar ? 'explorar' : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+}
+
+export function sameGoal(a: WalkGoal, b: WalkGoal) {
+  return a.tipo === b.tipo && a.minutes === b.minutes && a.km === b.km && a.parqueId === b.parqueId && !!a.explorar === !!b.explorar;
+}
+
 export const MOODS = [
   { id: 'feliz', label: 'Feliz', icon: '😄' },
   { id: 'tranquilo', label: 'Tranquilo', icon: '😌' },
@@ -353,7 +371,15 @@ export const GROOMING = [
   { id: 'bano', label: 'Baño', icon: '🛁' },
   { id: 'unas', label: 'Uñas', icon: '✂️' },
   { id: 'peluqueria', label: 'Peluquería', icon: '💇' },
+  { id: 'desparasitacion', label: 'Desparasitación', icon: '💊' },
+  { id: 'oidos', label: 'Limpieza de oídos', icon: '👂' },
+  { id: 'otro', label: 'Otro', icon: '✨' },
 ];
+
+// Un registro de higiene puede tener varios cuidados ("bano,unas"); los viejos tenían uno.
+export function groomingTypes(e: Entry) {
+  return (e.fields?.tipos ?? e.fields?.tipo ?? '').split(',').filter(Boolean);
+}
 
 export const PARK_FEATURES = [
   { id: 'canina', label: 'Zona canina' },

@@ -5,7 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GameMap } from '../components/GameMap';
 import { Icon } from '../components/Icon';
-import { BackHeader, Button, MenuRow, T } from '../components/ui';
+import { Chips } from '../components/form';
+import { BackHeader, Button, T } from '../components/ui';
 import type { IconName } from '../components/Icon';
 import { parkStats } from '../lib/game';
 import { useStore } from '../lib/store';
@@ -25,7 +26,7 @@ const CATEGORIES: { id: Category; label: string; icon: IconName; pin: string; em
   { id: 'otro', label: 'Otros lugares', icon: 'mapa', pin: colors.textMuted, emoji: '📍' },
 ];
 
-type Place = { id: string; name: string; detail?: string; address?: string; phone?: string; open?: () => void };
+type Place = { id: string; cat: Category; name: string; detail?: string; address?: string; phone?: string; open?: () => void };
 
 // Posición fija pero aproximada en el dibujo del mapa, hasta tener GPS.
 function spot(id: string) {
@@ -34,39 +35,45 @@ function spot(id: string) {
   return { left: `${12 + (h % 70)}%` as const, top: `${18 + ((h >> 8) % 45)}%` as const };
 }
 
-// Mapa de exploración: el barrio con tus lugares por categoría.
+// Mapa de exploración: el barrio con tus lugares; se eligen una o varias categorías.
 export default function Explorar() {
   const { data, savePark, saveVet, saveProvider } = useStore();
   const insets = useSafeAreaInsets();
-  const [cat, setCat] = useState<Category>('parques');
+  // Se pueden ver varias categorías a la vez; cada una aparece o desaparece del mapa.
+  const [cats, setCats] = useState<Category[]>(['parques']);
   const [menu, setMenu] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [addCat, setAddCat] = useState<Category>('parques');
   const [form, setForm] = useState({ name: '', address: '', phone: '' });
-  const current = CATEGORIES.find((c) => c.id === cat)!;
+  const shown = CATEGORIES.filter((c) => cats.includes(c.id));
+  const info = (c: Category) => CATEGORIES.find((x) => x.id === c)!;
+  const toggle = (c: Category) => setCats((l) => (l.includes(c) ? l.filter((x) => x !== c) : [...l, c]));
 
   const places = (c: Category): Place[] => {
     if (c === 'parques')
       return data.parks.map((p) => ({
         id: p.id,
+        cat: c,
         name: p.name,
         detail: [p.barrio, `${parkStats(data.entries, p.id).minutes} min`].filter(Boolean).join(' · '),
         open: () => router.push({ pathname: '/parque', params: { id: p.id } }),
       }));
     if (c === 'veterinarias')
-      return data.vets.map((v) => ({ id: v.id, name: v.name, detail: [v.doctor, v.place].filter(Boolean).join(' · '), address: v.address, phone: v.phone }));
+      return data.vets.map((v) => ({ id: v.id, cat: c, name: v.name, detail: [v.doctor, v.place].filter(Boolean).join(' · '), address: v.address, phone: v.phone }));
     return data.providers
       .filter((p) => p.type === c)
-      .map((p) => ({ id: p.id, name: p.name, detail: p.place, address: p.address, phone: p.phone }));
+      .map((p) => ({ id: p.id, cat: c, name: p.name, detail: p.place, address: p.address, phone: p.phone }));
   };
-  const list = places(cat);
+  const list = shown.flatMap((c) => places(c.id));
 
   const add = () => {
     const name = form.name.trim();
     const address = form.address.trim() || undefined;
     const phone = form.phone.trim() || undefined;
-    if (cat === 'parques') savePark({ name, barrio: address });
-    else if (cat === 'veterinarias') saveVet({ name, address, phone });
-    else saveProvider({ type: cat, name, address, phone });
+    if (addCat === 'parques') savePark({ name, barrio: address });
+    else if (addCat === 'veterinarias') saveVet({ name, address, phone });
+    else saveProvider({ type: addCat, name, address, phone });
+    if (!cats.includes(addCat)) setCats([...cats, addCat]);
     setForm({ name: '', address: '', phone: '' });
     setAdding(false);
   };
@@ -76,15 +83,15 @@ export default function Explorar() {
       <BackHeader title="Mapa de exploración" />
       <View style={s.map}>
         <GameMap />
-        {list.slice(0, 12).map((p) => (
+        {list.slice(0, 16).map((p) => (
           <Pressable key={p.id} onPress={p.open} style={[s.pin, spot(p.id)]}>
             <View style={[s.pinLabel, softShadow]}>
-              <Text style={{ fontSize: 12 }}>{current.emoji}</Text>
+              <Text style={{ fontSize: 12 }}>{info(p.cat).emoji}</Text>
               <T.Black style={{ fontSize: 11 }} numberOfLines={1}>
                 {p.name}
               </T.Black>
             </View>
-            <View style={[s.dot, { backgroundColor: current.pin }]} />
+            <View style={[s.dot, { backgroundColor: info(p.cat).pin }]} />
           </Pressable>
         ))}
         <Pressable
@@ -93,50 +100,62 @@ export default function Explorar() {
           onPress={() => setMenu(true)}
           style={[s.catBtn, softShadow]}
         >
-          <Text style={{ fontSize: 18 }}>{current.emoji}</Text>
-          <T.Black style={{ fontSize: 16 }}>{current.label}</T.Black>
+          <Text style={{ fontSize: 18 }}>{shown.length === 1 ? shown[0].emoji : '🗺️'}</Text>
+          <T.Black style={{ fontSize: 16 }}>
+            {shown.length === 0 ? 'Elige qué ver' : shown.length === 1 ? shown[0].label : `${shown.length} categorías`}
+          </T.Black>
           <Icon name="chevronDown" size={18} color={colors.text} strokeWidth={2.4} />
         </Pressable>
         <Text style={s.note}>Ubicaciones aproximadas · mapa real con GPS muy pronto</Text>
       </View>
 
       <ScrollView contentContainerStyle={[s.page, { paddingBottom: insets.bottom + 30 }]} keyboardShouldPersistTaps="handled">
-        <T.Black>
-          {current.label} · {list.length}
-        </T.Black>
-        {list.length === 0 && !adding ? <T.Muted>Aún no tienes lugares guardados aquí.</T.Muted> : null}
-        {list.map((p) => (
-          <Pressable key={p.id} onPress={p.open} disabled={!p.open} style={s.place}>
-            <Text style={{ fontSize: 22 }}>{current.emoji}</Text>
-            <View style={{ flex: 1 }}>
-              <T.Black>{p.name}</T.Black>
-              {p.detail || p.address || p.phone ? (
-                <T.Muted style={{ fontSize: 13 }}>{[p.detail, p.address, p.phone].filter(Boolean).join(' · ')}</T.Muted>
-              ) : null}
+        {shown.length === 0 ? <T.Muted>Abre el menú y elige una o varias categorías.</T.Muted> : null}
+        {shown.map((c) => {
+          const items = places(c.id);
+          return (
+            <View key={c.id} style={{ gap: 8 }}>
+              <T.Black>
+                {c.emoji} {c.label} · {items.length}
+              </T.Black>
+              {items.length === 0 ? <T.Muted style={{ fontSize: 13 }}>Aún no tienes lugares guardados aquí.</T.Muted> : null}
+              {items.map((p) => (
+                <Pressable key={p.id} onPress={p.open} disabled={!p.open} style={s.place}>
+                  <View style={[s.dot, { backgroundColor: c.pin }]} />
+                  <View style={{ flex: 1 }}>
+                    <T.Black>{p.name}</T.Black>
+                    {p.detail || p.address || p.phone ? (
+                      <T.Muted style={{ fontSize: 13 }}>{[p.detail, p.address, p.phone].filter(Boolean).join(' · ')}</T.Muted>
+                    ) : null}
+                  </View>
+                  {p.address ? (
+                    <Pressable
+                      onPress={() => Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${p.address}, Bogotá`)}`)}
+                      style={s.small}
+                    >
+                      <T.Black style={{ fontSize: 13, color: colors.accent }}>Mapa</T.Black>
+                    </Pressable>
+                  ) : p.open ? (
+                    <Icon name="chevronRight" size={18} color={colors.textMuted} />
+                  ) : null}
+                </Pressable>
+              ))}
             </View>
-            {p.address ? (
-              <Pressable
-                onPress={() => Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${p.address}, Bogotá`)}`)}
-                style={s.small}
-              >
-                <T.Black style={{ fontSize: 13, color: colors.accent }}>Mapa</T.Black>
-              </Pressable>
-            ) : p.open ? (
-              <Icon name="chevronRight" size={18} color={colors.textMuted} />
-            ) : null}
-          </Pressable>
-        ))}
+          );
+        })}
         {adding ? (
           <View style={[s.place, { flexDirection: 'column', alignItems: 'stretch', gap: 8 }]}>
+            <T.Black>¿Qué tipo de lugar?</T.Black>
+            <Chips options={CATEGORIES.map((c) => ({ id: c.id, label: c.label, icon: c.emoji }))} value={addCat} onChange={(id) => setAddCat(id as Category)} />
             <TextInput value={form.name} onChangeText={(name) => setForm({ ...form, name })} placeholder="Nombre" placeholderTextColor={colors.textMuted} style={s.input} />
             <TextInput
               value={form.address}
               onChangeText={(address) => setForm({ ...form, address })}
-              placeholder={cat === 'parques' ? 'Barrio (opcional)' : 'Dirección o barrio (opcional)'}
+              placeholder={addCat === 'parques' ? 'Barrio (opcional)' : 'Dirección o barrio (opcional)'}
               placeholderTextColor={colors.textMuted}
               style={s.input}
             />
-            {cat !== 'parques' && (
+            {addCat !== 'parques' && (
               <TextInput value={form.phone} onChangeText={(phone) => setForm({ ...form, phone })} placeholder="Teléfono (opcional)" keyboardType="phone-pad" placeholderTextColor={colors.textMuted} style={s.input} />
             )}
             <View style={{ flexDirection: 'row', gap: 10 }}>
@@ -145,7 +164,13 @@ export default function Explorar() {
             </View>
           </View>
         ) : (
-          <Button label={`+ Añadir a ${current.label.toLowerCase()}`} onPress={() => setAdding(true)} />
+          <Button
+            label="+ Añadir un lugar"
+            onPress={() => {
+              setAddCat(cats[0] ?? 'parques');
+              setAdding(true);
+            }}
+          />
         )}
         <T.Muted style={{ fontSize: 12, color: colors.lilacText }}>
           Muy pronto verás también los lugares aliados registrados en la app y a tus amigos cerca.
@@ -155,21 +180,33 @@ export default function Explorar() {
       <Modal transparent visible={menu} animationType="fade" onRequestClose={() => setMenu(false)}>
         <Pressable accessibilityLabel="Cerrar menú" style={s.backdrop} onPress={() => setMenu(false)} />
         <View style={[s.menu, shadow, { top: insets.top + 120 }]}>
-          {CATEGORIES.map((c) => (
-            <MenuRow
-              key={c.id}
-              compact
-              icon={c.icon}
-              title={c.label}
-              detail={`${places(c.id).length} guardados`}
-              tint={c.id === cat ? 'blue' : 'grey'}
-              onPress={() => {
-                setCat(c.id);
-                setAdding(false);
-                setMenu(false);
-              }}
-            />
-          ))}
+          <T.Eyebrow style={{ paddingHorizontal: 8, paddingTop: 6 }}>ELIGE UNA O VARIAS</T.Eyebrow>
+          {CATEGORIES.map((c) => {
+            const on = cats.includes(c.id);
+            return (
+              <Pressable
+                key={c.id}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: on }}
+                accessibilityLabel={c.label}
+                onPress={() => toggle(c.id)}
+                style={[s.option, on && { backgroundColor: colors.blue }]}
+              >
+                <View style={[s.box, on && { backgroundColor: colors.accent, borderColor: colors.accent }]}>
+                  {on ? <Text style={{ color: '#FFFFFF', fontWeight: '900', fontSize: 13 }}>✓</Text> : null}
+                </View>
+                <Text style={{ fontSize: 18 }}>{c.emoji}</Text>
+                <View style={{ flex: 1 }}>
+                  <T.Black style={{ fontSize: 15 }}>{c.label}</T.Black>
+                  <T.Muted style={{ fontSize: 12 }}>{places(c.id).length} guardados</T.Muted>
+                </View>
+              </Pressable>
+            );
+          })}
+          <View style={{ flexDirection: 'row', gap: 8, padding: 6 }}>
+            <Button label="Todas" kind="secondary" style={{ flex: 1 }} onPress={() => setCats(CATEGORIES.map((c) => c.id))} />
+            <Button label="Listo" kind="solid" style={{ flex: 1 }} onPress={() => setMenu(false)} />
+          </View>
         </View>
       </Modal>
     </View>
@@ -225,5 +262,7 @@ const s = StyleSheet.create({
     color: colors.body,
   },
   backdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15,37,64,0.35)' },
+  option: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 14 },
+  box: { width: 24, height: 24, borderRadius: 7, borderWidth: 2, borderColor: colors.grey, alignItems: 'center', justifyContent: 'center' },
   menu: { position: 'absolute', left: 16, width: 300, maxWidth: '92%', backgroundColor: '#FFFFFF', borderRadius: 20, padding: 6 },
 });

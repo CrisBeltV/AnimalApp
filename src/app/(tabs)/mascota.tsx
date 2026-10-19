@@ -13,6 +13,7 @@ import { Bar, Button, Card, EntryRow, T, soon, when } from '../../components/ui'
 import {
   DAY_MS,
   GROOMING,
+  groomingTypes,
   MOODS,
   NEW_PARK_XP,
   PARK_BADGES,
@@ -473,7 +474,7 @@ function Cuerpo({ data }: { data: AppData }) {
   const age = pet.birthDate ? Math.floor((Date.now() - new Date(pet.birthDate).getTime()) / (365.25 * DAY_MS)) : null;
   const condition = CONDITIONS.find((c) => c.id === data.entries.find((e) => e.kind === 'peso' && e.fields?.condicion)?.fields?.condicion);
   const photo = data.entries.find((e) => e.kind === 'foto');
-  const grooming = GROOMING.map((g) => ({ ...g, last: data.entries.find((e) => e.kind === 'higiene' && e.fields?.tipo === g.id) }));
+  const grooming = GROOMING.map((g) => ({ ...g, last: data.entries.find((e) => e.kind === 'higiene' && groomingTypes(e).includes(g.id)) }));
 
   return (
     <>
@@ -531,7 +532,7 @@ function Cuerpo({ data }: { data: AppData }) {
             </T.Muted>
           </Pressable>
         ))}
-        <Button label="Registrar baño, uñas o peluquería" onPress={() => add('higiene')} />
+        <Button label="Registrar higiene" onPress={() => add('higiene')} />
       </Card>
       <Button label="Registrar peso y medidas" kind="solid" onPress={() => add('peso')} />
     </>

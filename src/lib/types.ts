@@ -117,6 +117,9 @@ export type WalkGoal = {
   explorar?: boolean; // visitar un parque nuevo
 };
 
+// Paseo recurrente: un objetivo guardado para repetirlo con un toque.
+export type WalkRoutine = WalkGoal & { id: string; name: string };
+
 // Avisos diarios: horarios de comida y recordatorio de paseo.
 export type Settings = {
   mealTimes: string[]; // "07:00"
@@ -131,6 +134,7 @@ export type AppData = {
   reports: Report[];
   activeWalkStart: number | null;
   walkGoal?: WalkGoal; // objetivo del paseo en curso
+  routines?: WalkRoutine[]; // paseos y entrenamientos recurrentes
   unlocked: string[]; // ids de logros ya ganados
   reminders: Reminder[];
   vets: Vet[];

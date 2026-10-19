@@ -10,7 +10,7 @@ import type { Achievement } from './game';
 import { emptyData } from './types';
 import { cancel } from './notify';
 import { sampleReports } from './samples';
-import type { AppData, Entry, Park, Pet, Provider, Reminder, Report, Settings, Vet, WalkGoal } from './types';
+import type { AppData, Entry, Park, Pet, Provider, Reminder, Report, Settings, Vet, WalkGoal, WalkRoutine } from './types';
 
 // Los datos viven en el teléfono y, si el dueño entró con su cuenta,
 // también en la nube (Supabase), para no perderlos al cambiar de teléfono.
@@ -44,6 +44,8 @@ type Store = {
   saveVet: (vet: Omit<Vet, 'id'> & { id?: string }) => string;
   savePark: (park: Omit<Park, 'id'> & { id?: string }) => string;
   removePark: (id: string) => void;
+  saveRoutine: (routine: Omit<WalkRoutine, 'id'> & { id?: string }) => string;
+  removeRoutine: (id: string) => void;
   saveProvider: (provider: Omit<Provider, 'id'> & { id?: string }) => string;
   setSettings: (patch: Partial<Settings>) => void;
   startWalk: (goal?: WalkGoal) => void;
@@ -250,6 +252,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return id;
       },
       removePark: (id) => change((d) => ({ ...d, parks: d.parks.filter((p) => p.id !== id) })),
+      saveRoutine: (routine) => {
+        const id = routine.id ?? `rutina-${Date.now()}`;
+        change((d) => ({ ...d, routines: [{ ...routine, id }, ...(d.routines ?? []).filter((r) => r.id !== id)] }));
+        return id;
+      },
+      removeRoutine: (id) => change((d) => ({ ...d, routines: (d.routines ?? []).filter((r) => r.id !== id) })),
       saveProvider: (provider) => {
         const id = provider.id ?? `prov-${Date.now()}`;
         change((d) => ({ ...d, providers: [{ ...provider, id }, ...d.providers.filter((p) => p.id !== id)] }));

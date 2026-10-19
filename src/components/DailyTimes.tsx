@@ -78,24 +78,39 @@ function Stepper({ label, value, onMinus, onPlus }: { label: string; value: stri
   );
 }
 
-// Horarios de comida: cada hora es un aviso diario en el teléfono.
+// Horarios de comida: cada hora es un aviso diario en el teléfono. Toca uno para cambiarlo.
 export function MealTimes() {
   const { data, setSettings } = useStore();
   const pet = data.pet!;
   const { mealTimes, notifIds } = data.settings;
-  const [picking, setPicking] = useState<string | null>(null);
+  // editing: horario que se está cambiando ('' = uno nuevo); picking: la hora elegida.
+  const [editing, setEditing] = useState<string | null>(null);
+  const [picking, setPicking] = useState('07:00');
 
-  const add = async (time: string) => {
-    setPicking(null);
-    if (mealTimes.includes(time)) return;
-    const t = parseTime(time)!;
-    const id = await scheduleDaily('Hora de comer', `Es hora de la comida de ${pet.name}`, t.hour, t.minute);
-    setSettings({
-      mealTimes: [...mealTimes, time].sort(),
-      notifIds: id ? { ...notifIds, [`comida-${time}`]: id } : notifIds,
-    });
+  const open = (time: string) => {
+    setEditing(time);
+    setPicking(time || '07:00');
+  };
+  const save = async () => {
+    const old = editing;
+    setEditing(null);
+    const ids = { ...notifIds };
+    let times = mealTimes;
+    if (old) {
+      cancel(ids[`comida-${old}`]);
+      delete ids[`comida-${old}`];
+      times = times.filter((m) => m !== old);
+    }
+    if (!times.includes(picking)) {
+      const t = parseTime(picking)!;
+      const id = await scheduleDaily('Hora de comer', `Es hora de la comida de ${pet.name}`, t.hour, t.minute);
+      if (id) ids[`comida-${picking}`] = id;
+      times = [...times, picking].sort();
+    }
+    setSettings({ mealTimes: times, notifIds: ids });
   };
   const remove = (time: string) => {
+    setEditing(null);
     cancel(notifIds[`comida-${time}`]);
     const rest = { ...notifIds };
     delete rest[`comida-${time}`];
@@ -107,22 +122,24 @@ export function MealTimes() {
       {mealTimes.length === 0 ? <T.Muted style={{ fontSize: 13 }}>Aún no hay horarios.</T.Muted> : null}
       <View style={s.wrap}>
         {mealTimes.map((m) => (
-          <Pressable key={m} accessibilityLabel={`Quitar horario ${time12(m)}`} onPress={() => remove(m)} style={[s.chip, s.on]}>
+          <Pressable key={m} accessibilityLabel={`Editar horario ${time12(m)}`} onPress={() => open(m)} style={[s.chip, s.on, editing === m && s.editing]}>
             <T.Black style={{ fontSize: 15 }}>{time12(m)}</T.Black>
-            <T.Black style={{ fontSize: 13, color: colors.textMuted }}>✕</T.Black>
+            <T.Black style={{ fontSize: 13, color: colors.accent }}>✎</T.Black>
           </Pressable>
         ))}
       </View>
-      {picking !== null ? (
-        <>
+      {editing !== null ? (
+        <View style={s.editBox}>
+          <T.Black>{editing ? `Editar aviso de las ${time12(editing)}` : 'Nuevo horario'}</T.Black>
           <TimePicker value={picking} onChange={setPicking} />
           <View style={{ flexDirection: 'row', gap: 10 }}>
-            <Button label="Cancelar" kind="secondary" style={{ flex: 1 }} onPress={() => setPicking(null)} />
-            <Button label={`Añadir ${time12(picking)}`} kind="solid" style={{ flex: 1 }} onPress={() => add(picking)} />
+            <Button label="Cancelar" kind="secondary" style={{ flex: 1 }} onPress={() => setEditing(null)} />
+            <Button label={editing ? 'Guardar cambio' : `Añadir ${time12(picking)}`} kind="solid" style={{ flex: 1 }} onPress={save} />
           </View>
-        </>
+          {editing ? <Button label="Quitar este horario" kind="lost" onPress={() => remove(editing)} /> : null}
+        </View>
       ) : (
-        <Button label="+ Añadir horario" onPress={() => setPicking('07:00')} />
+        <Button label="+ Añadir horario" onPress={() => open('')} />
       )}
       {!canNotify && <T.Muted style={{ fontSize: 12 }}>En el teléfono te llegará un aviso a cada hora.</T.Muted>}
     </View>
@@ -182,6 +199,8 @@ const s = StyleSheet.create({
     backgroundColor: colors.card,
   },
   on: { backgroundColor: colors.blue, borderColor: colors.accent },
+  editing: { backgroundColor: colors.lilacSoft, borderColor: colors.lilacStrong },
+  editBox: { gap: 10, padding: 12, borderRadius: radius.md, backgroundColor: colors.bg },
   picker: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
   stepper: { alignItems: 'center', gap: 2 },
   arrow: { width: 56, height: 36, borderRadius: 12, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' },
