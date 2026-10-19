@@ -7,6 +7,7 @@ function pathFor(kind: EntryKind) {
   if (kind === 'paseo') return '/salida';
   if (kind === 'peso') return '/medidas';
   if (kind === 'alimento') return '/ficha';
+  if (kind === 'comida') return '/comida';
   if (kind === 'higiene') return '/higiene';
   if (kind === 'foto') return '/foto-semana';
   if (kind === 'animo') return '/animo';

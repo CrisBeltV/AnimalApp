@@ -66,8 +66,8 @@ export type Vet = {
 
 export type ReportKind = 'perdida' | 'encontrada';
 
-// Reporte de mascota perdida o encontrada. Por ahora queda en el teléfono;
-// con la nube se enviará a los vecinos a 2 km.
+// Reporte de mascota perdida o encontrada. Con cuenta se publica en la nube
+// y lo ven los demás dueños; sin cuenta queda solo en el teléfono.
 export type Report = {
   id: string;
   kind: ReportKind;
@@ -80,6 +80,8 @@ export type Report = {
   withMe?: boolean; // encontrada: la tengo conmigo
   distance?: string; // solo en los ejemplos
   example?: boolean;
+  cloudId?: string; // id en la nube, si se publicó
+  mine?: boolean; // false: reporte de otro dueño
 };
 
 // Parque registrado por el dueño. Los minutos de paseo ahí cuentan para conquistarlo.
@@ -87,11 +89,14 @@ export type Park = {
   id: string;
   name: string;
   barrio?: string;
+  features?: string[]; // zona canina, agua, sombra…
+  rating?: number; // 1 a 5, tu calificación
+  note?: string;
 };
 
 // Proveedores guardados por el dueño (paseadores, guarderías, tiendas, peluquerías).
 // Más adelante se unirán con las cuentas de aliados registrados en la app.
-export type ProviderType = 'paseador' | 'guarderia' | 'tienda' | 'peluqueria';
+export type ProviderType = 'paseador' | 'guarderia' | 'tienda' | 'peluqueria' | 'restaurante' | 'otro';
 
 export type Provider = {
   id: string;
@@ -101,6 +106,15 @@ export type Provider = {
   address?: string;
   place?: string;
   phone?: string;
+};
+
+// Objetivo que se elige antes de salir a pasear.
+export type WalkGoal = {
+  tipo: string; // paseo, juego, entrenamiento, guardería
+  minutes?: number;
+  km?: number; // se medirá con GPS
+  parqueId?: string; // parque a conquistar
+  explorar?: boolean; // visitar un parque nuevo
 };
 
 // Avisos diarios: horarios de comida y recordatorio de paseo.
@@ -116,12 +130,14 @@ export type AppData = {
   entries: Entry[];
   reports: Report[];
   activeWalkStart: number | null;
+  walkGoal?: WalkGoal; // objetivo del paseo en curso
   unlocked: string[]; // ids de logros ya ganados
   reminders: Reminder[];
   vets: Vet[];
   parks: Park[];
   providers: Provider[];
   settings: Settings;
+  updatedAt: number; // último cambio, para saber qué copia es más nueva
 };
 
 export const emptyData: AppData = {
@@ -136,4 +152,5 @@ export const emptyData: AppData = {
   parks: [],
   providers: [],
   settings: { mealTimes: [], notifIds: {} },
+  updatedAt: 0,
 };

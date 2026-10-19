@@ -1,9 +1,10 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ACHIEVEMENTS, levelInfo, totalXp } from '../lib/game';
+import { useAuth } from '../lib/auth';
 import { useStore } from '../lib/store';
 import { colors, fonts, shadow } from '../lib/theme';
 import { MenuRow, T, soon } from './ui';
@@ -11,8 +12,20 @@ import { MenuRow, T, soon } from './ui';
 // Botón redondo con la inicial del dueño y su nivel. Abre el menú "Tu cuenta".
 export function AccountButton() {
   const { data } = useStore();
+  const auth = useAuth();
   const [open, setOpen] = useState(false);
   const insets = useSafeAreaInsets();
+  const window = useWindowDimensions();
+  const button = useRef<React.ComponentRef<typeof View>>(null);
+  // El menú se abre justo debajo del botón, alineado a su borde derecho.
+  const [anchor, setAnchor] = useState({ top: insets.top + 68, right: 16 });
+  const openMenu = () => {
+    button.current?.measureInWindow((x, y, w, h) => {
+      if (w > 0) setAnchor({ top: y + h + 8, right: Math.max(8, window.width - (x + w)) });
+      setOpen(true);
+    });
+    if (!button.current) setOpen(true);
+  };
   const lvl = levelInfo(totalXp(data));
   const initial = (data.ownerName.trim()[0] ?? '?').toUpperCase();
   const won = ACHIEVEMENTS.filter((a) => data.unlocked.includes(a.id)).length;
@@ -26,7 +39,8 @@ export function AccountButton() {
     <>
       <Pressable
         accessibilityLabel={`Tu cuenta: ${data.ownerName}, nivel ${lvl.level}`}
-        onPress={() => setOpen(true)}
+        ref={button}
+        onPress={openMenu}
         style={[s.avatar, shadow]}
       >
         <Text style={s.initial}>{initial}</Text>
@@ -37,16 +51,18 @@ export function AccountButton() {
 
       <Modal transparent visible={open} animationType="fade" onRequestClose={() => setOpen(false)}>
         <Pressable accessibilityLabel="Cerrar menú de tu cuenta" style={s.backdrop} onPress={() => setOpen(false)} />
-        <View style={[s.menu, shadow, { top: insets.top + 108 }]}>
+        <View style={[s.menu, shadow, { top: anchor.top, right: anchor.right }]}>
           <ScrollView>
             <T.Eyebrow style={s.group}>TU CUENTA</T.Eyebrow>
             <MenuRow
+              compact
               icon="usuario"
               title="Mi perfil"
               detail={`${data.ownerName} · nivel ${lvl.level}`}
               onPress={go(() => router.push('/perfil'))}
             />
             <MenuRow
+              compact
               icon="ajustes"
               title="Ajustes y privacidad"
               detail="Tu nombre y tus datos"
@@ -54,6 +70,7 @@ export function AccountButton() {
             />
             <T.Eyebrow style={s.group}>RECOMPENSAS</T.Eyebrow>
             <MenuRow
+              compact
               icon="estrella"
               title="Nivel y XP"
               detail="Tu progreso y lo que desbloqueaste"
@@ -61,6 +78,7 @@ export function AccountButton() {
               onPress={go(() => router.push('/logros'))}
             />
             <MenuRow
+              compact
               icon="insignia"
               title="Insignias"
               detail={`${won} de ${ACHIEVEMENTS.length} ganadas`}
@@ -68,6 +86,7 @@ export function AccountButton() {
               onPress={go(() => router.push('/logros'))}
             />
             <MenuRow
+              compact
               icon="tienda"
               title="Tienda"
               detail="Canjea tus monedas"
@@ -75,15 +94,29 @@ export function AccountButton() {
               onPress={go(() => soon('Tienda', 'Aquí podrás canjear monedas por accesorios para tu mascota.'))}
             />
             <T.Eyebrow style={s.group}>INICIO DE LA APP</T.Eyebrow>
-            <MenuRow
-              icon="entrar"
-              title="Entrar o crear cuenta"
-              detail="Correo, Google o Apple"
-              tint="grey"
-              onPress={go(() =>
-                soon('Entrar o crear cuenta', 'Las cuentas llegan cuando conectemos la nube. Por ahora todo se guarda en este teléfono.'),
-              )}
-            />
+            {auth.session ? (
+              <MenuRow
+              compact
+                icon="entrar"
+                title="Tu cuenta"
+                detail={auth.email ?? 'Guardada en la nube'}
+                tint="grey"
+                onPress={go(() => router.push('/ajustes'))}
+              />
+            ) : (
+              <MenuRow
+              compact
+                icon="entrar"
+                title="Entrar o crear cuenta"
+                detail="Para guardar todo en la nube"
+                tint="grey"
+                onPress={go(() =>
+                  auth.enabled
+                    ? router.push('/entrar')
+                    : soon('Entrar o crear cuenta', 'Las cuentas llegan cuando conectemos la nube. Por ahora todo se guarda en este teléfono.'),
+                )}
+              />
+            )}
           </ScrollView>
         </View>
       </Modal>
@@ -120,14 +153,12 @@ const s = StyleSheet.create({
   backdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15,37,64,0.35)' },
   menu: {
     position: 'absolute',
-    left: 16,
-    right: 16,
-    maxWidth: 520,
-    alignSelf: 'center',
+    width: 280,
+    maxWidth: '92%',
     maxHeight: '75%',
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 8,
+    borderRadius: 20,
+    padding: 6,
   },
-  group: { paddingHorizontal: 8, paddingTop: 8, paddingBottom: 2 },
+  group: { paddingHorizontal: 8, paddingTop: 6, paddingBottom: 0, fontSize: 11 },
 });

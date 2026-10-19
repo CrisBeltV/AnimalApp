@@ -4,6 +4,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { CelebrateModal } from '../components/CelebrateModal';
+import { AuthProvider } from '../lib/auth';
 import { useAppFonts } from '../lib/fonts';
 import { StoreProvider } from '../lib/store';
 import { colors } from '../lib/theme';
@@ -19,15 +20,18 @@ export default function RootLayout() {
   }
   return (
     <SafeAreaProvider>
+      <AuthProvider>
       <StoreProvider>
         <StatusBar style="dark" />
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="crear-mascota" />
+          <Stack.Screen name="entrar" />
           <Stack.Screen name="registro" options={{ presentation: 'modal' }} />
         </Stack>
         <CelebrateModal />
       </StoreProvider>
+      </AuthProvider>
     </SafeAreaProvider>
   );
 }

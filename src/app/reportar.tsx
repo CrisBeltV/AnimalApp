@@ -5,6 +5,7 @@ import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native
 import { Icon } from '../components/Icon';
 import { PetDrawing } from '../components/PetDrawing';
 import { BackHeader, Button, Card, T } from '../components/ui';
+import { useAuth } from '../lib/auth';
 import { useStore } from '../lib/store';
 import { colors, fonts, radius } from '../lib/theme';
 import type { ReportKind, Species } from '../lib/types';
@@ -14,6 +15,7 @@ export default function Reportar() {
   const { tipo } = useLocalSearchParams<{ tipo?: string }>();
   const kind: ReportKind = tipo === 'encontrada' ? 'encontrada' : 'perdida';
   const { data, addReport } = useStore();
+  const { userId } = useAuth();
   const pet = data.pet!;
   const lost = kind === 'perdida';
 
@@ -45,8 +47,9 @@ export default function Reportar() {
           <Card style={{ gap: 8, borderWidth: 2, borderColor: lost ? colors.lost : colors.found }}>
             <T.Display style={{ fontSize: 22 }}>{lost ? `Ojalá ${pet.name} vuelva pronto` : '¡Gracias por ayudar!'}</T.Display>
             <T.Body>
-              Tu reporte ya aparece en Perdidas y encontradas. Por ahora queda guardado en este teléfono. Cuando conectemos la nube,
-              llegará en tiempo real a los vecinos a 2 km y podrán escribirte por el chat seguro, sin ver tu número.
+              {userId
+                ? 'Tu reporte ya lo ven los demás dueños en Perdidas y encontradas. Pronto podrán escribirte por el chat seguro, sin ver tu número.'
+                : 'Tu reporte quedó guardado en este teléfono. Para que lo vean los demás dueños, entra con tu cuenta desde Ajustes.'}
             </T.Body>
           </Card>
           <Button label="Ver alertas" kind="solid" onPress={() => router.replace('/perdidas')} />

@@ -109,23 +109,28 @@ export function MenuRow({
   detail,
   onPress,
   tint = 'blue',
+  compact,
 }: {
   icon: IconName;
   title: string;
   detail?: string;
   onPress: () => void;
   tint?: 'blue' | 'lilac' | 'grey';
+  compact?: boolean; // filas más bajas para menús desplegables
 }) {
   const bg = tint === 'blue' ? colors.blue : tint === 'lilac' ? colors.lilacSoft : colors.grey;
   const fg = tint === 'blue' ? colors.accent : tint === 'lilac' ? colors.lilacText : colors.body;
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.menuRow, pressed && { backgroundColor: colors.bg }]}>
-      <View style={[styles.menuIcon, { backgroundColor: bg }]}>
-        <Icon name={icon} size={20} color={fg} strokeWidth={2.2} />
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.menuRow, compact && styles.menuRowCompact, pressed && { backgroundColor: colors.bg }]}
+    >
+      <View style={[styles.menuIcon, compact && styles.menuIconCompact, { backgroundColor: bg }]}>
+        <Icon name={icon} size={compact ? 17 : 20} color={fg} strokeWidth={2.2} />
       </View>
       <View style={{ flex: 1 }}>
-        <T.Black>{title}</T.Black>
-        {detail ? <T.Muted style={{ fontSize: 13 }}>{detail}</T.Muted> : null}
+        <T.Black style={compact ? { fontSize: 15 } : undefined}>{title}</T.Black>
+        {detail ? <T.Muted style={{ fontSize: compact ? 12 : 13 }}>{detail}</T.Muted> : null}
       </View>
       <Icon name="chevronRight" size={18} color={colors.textMuted} strokeWidth={2.2} />
     </Pressable>
@@ -223,6 +228,8 @@ export const styles = StyleSheet.create({
     borderRadius: 16,
   },
   menuIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  menuRowCompact: { minHeight: 46, gap: 10, paddingVertical: 2 },
+  menuIconCompact: { width: 32, height: 32, borderRadius: 16 },
   backHeader: {
     flexDirection: 'row',
     alignItems: 'center',

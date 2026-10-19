@@ -36,6 +36,7 @@ export default function Ficha() {
   const [targets, setTargets] = useState<RemindTarget[]>([]);
   const [every, setEvery] = useState<{ title: string; hours: number; start: number } | undefined>();
 
+  const groupStart = (i: number) => !!fields[i].group && fields[i - 1]?.group !== fields[i].group;
   const set = (k: string) => (v: string) => setValues((x) => ({ ...x, [k]: v }));
   const val = (k: string) => (values[k] ?? '').trim();
   const missing = fields.filter((f) => f.required && (!val(f.key) || (f.date && parseDate(val(f.key)) === null)));
@@ -109,12 +110,15 @@ export default function Ficha() {
             </View>
           )}
           <Card style={{ gap: 2 }}>
-            {fields.map((f) => (
-              <View key={f.key} style={s.previewRow}>
-                <T.Muted style={{ fontSize: 13 }}>{f.label}</T.Muted>
-                <T.Black style={{ color: val(f.key) ? colors.text : colors.textMuted, fontSize: 15 }}>
-                  {val(f.key) || 'Sin dato'}
-                </T.Black>
+            {fields.map((f, i) => (
+              <View key={f.key}>
+                {groupStart(i) ? <T.Black style={s.groupHead}>{f.group}</T.Black> : null}
+                <View style={[s.previewRow, f.group ? s.tableRow : null]}>
+                  <T.Muted style={{ fontSize: 13, flex: f.group ? 1 : undefined }}>{f.label}</T.Muted>
+                  <T.Black style={{ color: val(f.key) ? colors.text : colors.textMuted, fontSize: 15 }}>
+                    {val(f.key) || 'Sin dato'}
+                  </T.Black>
+                </View>
               </View>
             ))}
           </Card>
@@ -138,8 +142,14 @@ export default function Ficha() {
         </Card>
 
         <T.Muted>Escribe los datos. Los marcados con * son necesarios.</T.Muted>
-        {fields.map((f) => (
+        {fields.map((f, i) => (
           <View key={f.key} style={{ gap: 4 }}>
+            {groupStart(i) ? (
+              <View style={{ marginTop: 6, gap: 2 }}>
+                <T.Black style={{ fontSize: 17 }}>{f.group}</T.Black>
+                <T.Muted style={{ fontSize: 13 }}>Copia los valores del "análisis garantizado" de la bolsa. Sirven para el balance de cada comida.</T.Muted>
+              </View>
+            ) : null}
             <Input field={f} value={values[f.key] ?? ''} onChange={set(f.key)} />
             {f.lookup && (
               <Pressable onPress={() => lookup(f.label)} style={{ alignSelf: 'flex-start', paddingVertical: 4 }}>
@@ -164,5 +174,7 @@ export default function Ficha() {
 const s = StyleSheet.create({
   page: { paddingHorizontal: 16, paddingBottom: 40, gap: 14, width: '100%', maxWidth: 560, alignSelf: 'center' },
   thumb: { flex: 1, height: 110, borderRadius: 16, backgroundColor: colors.grey },
+  groupHead: { marginTop: 10, paddingVertical: 6, paddingHorizontal: 8, borderRadius: 10, backgroundColor: colors.lilacSoft, fontSize: 15 },
+  tableRow: { flexDirection: 'row', alignItems: 'center' },
   previewRow: { paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.grey, gap: 2 },
 });

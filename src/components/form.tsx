@@ -381,6 +381,8 @@ const PROVIDER_WORD: Record<ProviderType, { title: string; one: string; hint: st
   guarderia: { title: 'Guardería', one: 'guardería', hint: 'Nombre de la guardería' },
   tienda: { title: 'Tienda', one: 'tienda', hint: 'Nombre de la tienda' },
   peluqueria: { title: 'Peluquería', one: 'peluquería', hint: 'Nombre de la peluquería o groomer' },
+  restaurante: { title: 'Restaurante', one: 'restaurante', hint: 'Nombre del restaurante' },
+  otro: { title: 'Lugar', one: 'lugar', hint: 'Nombre del lugar' },
 };
 
 // Buscar un proveedor guardado o añadir uno nuevo. Más adelante también saldrán

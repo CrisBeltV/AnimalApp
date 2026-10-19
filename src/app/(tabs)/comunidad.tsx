@@ -6,17 +6,16 @@ import { AccountButton } from '../../components/AccountButton';
 import { Icon } from '../../components/Icon';
 import { Button, T, soon } from '../../components/ui';
 import { ACHIEVEMENTS, weekMinutes } from '../../lib/game';
-import { sampleReports } from '../../lib/samples';
 import { useStore } from '../../lib/store';
 import { colors, fonts } from '../../lib/theme';
 import { useNow } from '../../lib/useNow';
 
 export default function Comunidad() {
-  const { data } = useStore();
+  const { data, reports: allReports } = useStore();
   const insets = useSafeAreaInsets();
   const now = useNow();
   const pet = data.pet!;
-  const reports = [...data.reports, ...sampleReports(now)];
+  const reports = allReports(now);
   const lost = reports.filter((r) => r.kind === 'perdida');
   const won = ACHIEVEMENTS.filter((a) => data.unlocked.includes(a.id)).length;
   const myWeek = Math.round(weekMinutes(data.entries, now).reduce((a, b) => a + b, 0));
@@ -45,7 +44,9 @@ export default function Comunidad() {
         <View style={{ flex: 1 }}>
           <T.Black>Mascotas perdidas y encontradas</T.Black>
           <T.Muted>
-            {reports.length} alertas a 2 km · {lost[0]?.petName} se perdió
+            {reports.length === 0
+              ? 'Sin alertas cerca por ahora'
+              : `${reports.length} ${reports.length === 1 ? 'alerta' : 'alertas'}${lost[0] ? ` · ${lost[0].petName} se perdió` : ''}`}
           </T.Muted>
         </View>
         <Icon name="chevronRight" size={20} color={colors.textMuted} strokeWidth={2.2} />

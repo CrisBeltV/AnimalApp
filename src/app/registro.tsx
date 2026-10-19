@@ -36,7 +36,7 @@ const NUMBER: Partial<Record<EntryKind, { label: string; placeholder: string }>>
 };
 
 // Vacuna, medicamento, veterinario y novedades tienen su propia ventana (ver lib/routes).
-const OWN_SCREEN: EntryKind[] = ['vacuna', 'medicamento', 'veterinario', 'novedad', 'deposicion', 'enfermedad', 'lesion', 'paseo', 'peso', 'alimento', 'higiene', 'foto', 'animo'];
+const OWN_SCREEN: EntryKind[] = ['vacuna', 'medicamento', 'veterinario', 'novedad', 'deposicion', 'enfermedad', 'lesion', 'paseo', 'peso', 'alimento', 'higiene', 'foto', 'animo', 'comida'];
 
 const NOTE_HINT: Partial<Record<EntryKind, string>> = {
   comida: '150 g de concentrado',
@@ -53,7 +53,7 @@ const amountOf = (e?: Entry) => {
 // Botón + : "Añadir rápidamente", como en la maqueta. Con id, edita un registro.
 export default function Registro() {
   const params = useLocalSearchParams<{ tipo?: EntryKind; id?: string }>();
-  const { data, addEntry, updateEntry, removeEntry, startWalk } = useStore();
+  const { data, addEntry, updateEntry, removeEntry } = useStore();
   const pet = data.pet!;
   const word = activityWord(pet.species);
   const editing = data.entries.find((e) => e.id === params.id);
@@ -142,7 +142,6 @@ export default function Registro() {
       <ScrollView contentContainerStyle={s.page}>
         <Pressable
           onPress={() => {
-            if (data.activeWalkStart === null) startWalk();
             router.replace('/paseo');
           }}
           style={s.walk}

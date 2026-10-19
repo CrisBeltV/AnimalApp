@@ -3,15 +3,14 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { PetDrawing } from '../components/PetDrawing';
 import { BackHeader, Button, Card, T, soon, when } from '../components/ui';
-import { sampleReports } from '../lib/samples';
 import { useStore } from '../lib/store';
 import { colors } from '../lib/theme';
 
 // Detalle de un reporte de mascota perdida o encontrada.
 export default function Reporte() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { data } = useStore();
-  const r = [...data.reports, ...sampleReports(Date.now())].find((x) => x.id === id);
+  const { reports } = useStore();
+  const r = reports(Date.now()).find((x) => x.id === id);
 
   if (!r) {
     return (
@@ -27,7 +26,7 @@ export default function Reporte() {
   const lost = r.kind === 'perdida';
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <BackHeader title={lost ? `${r.petName} se perdió` : r.petName} subtitle={r.example ? 'Reporte de ejemplo' : 'Tu reporte'} />
+      <BackHeader title={lost ? `${r.petName} se perdió` : r.petName} subtitle={r.example ? 'Reporte de ejemplo' : r.mine === false ? 'Reporte de un vecino' : 'Tu reporte'} />
       <ScrollView contentContainerStyle={s.page}>
         <View style={[s.photo, { backgroundColor: lost ? '#F1E4D6' : colors.foundSoft }]}>
           <PetDrawing species={r.species} mood="normal" size={150} />
@@ -54,7 +53,7 @@ export default function Reporte() {
         <Button
           label={lost ? 'Escribir a su dueño' : 'Es mi mascota: escribir'}
           kind="solid"
-          onPress={() => soon('Chat seguro', 'El contacto será solo por chat dentro de la app, para que nadie vea tu número. Llega cuando conectemos la nube.')}
+          onPress={() => soon('Chat seguro', 'El contacto será solo por chat dentro de la app, para que nadie vea tu número. Llega en la siguiente versión.')}
         />
       </ScrollView>
     </View>

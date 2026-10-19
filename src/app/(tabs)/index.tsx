@@ -24,7 +24,7 @@ import { useNow } from '../../lib/useNow';
 
 // INICIO = Paseo, el corazón de la app: el barrio como mapa de juego con tu mascota en el centro.
 export default function Inicio() {
-  const { data, startWalk } = useStore();
+  const { data } = useStore();
   const insets = useSafeAreaInsets();
   const walking = data.activeWalkStart !== null;
   const now = useNow(walking ? 1000 : 30000);
@@ -39,12 +39,11 @@ export default function Inicio() {
 
   const goWalk = () => {
     setMenu(false);
-    if (!walking) startWalk();
     router.push('/paseo');
   };
-  const later = (title: string, text: string) => () => {
+  const go = (path: '/resumen' | '/explorar' | '/parques') => () => {
     setMenu(false);
-    soon(title, text);
+    router.push(path);
   };
 
   return (
@@ -88,14 +87,14 @@ export default function Inicio() {
 
       <Pressable
         accessibilityLabel="Conquista de parques"
-        onPress={() => soon('Conquista de parques', 'Visita parques con tu mascota para conquistarlos y ganar puntos. Necesita la ubicación del teléfono, que llega en la siguiente versión.')}
+        onPress={() => router.push('/parques')}
         style={[s.flag, softShadow, { top: insets.top + (walking ? 244 : 186) }]}
       >
         <Icon name="bandera" size={22} color={colors.accent} strokeWidth={2.4} />
       </Pressable>
 
       <Pressable
-        onPress={() => soon('Ficha del parque', 'Cada parque tendrá su ficha con reseñas, retos y quién lo conquistó.')}
+        onPress={() => router.push('/parques')}
         style={[s.pin, { left: '60%', top: '36%' }]}
       >
         <View style={[s.pinLabel, softShadow]}>
@@ -142,51 +141,23 @@ export default function Inicio() {
 
       <Modal transparent visible={menu} animationType="fade" onRequestClose={() => setMenu(false)}>
         <Pressable accessibilityLabel="Cerrar menú" style={s.backdrop} onPress={() => setMenu(false)} />
-        <View style={[s.menu, shadow, { top: insets.top + 68 }]}>
-          <T.Eyebrow style={s.group}>{word === 'Juego' ? 'JUEGOS' : 'PASEOS'}</T.Eyebrow>
+        <View style={[s.menu, shadow, { top: insets.top + 64 }]}>
           <MenuRow
+            compact
             icon="reloj"
             title={walking ? `${word} en curso` : `Iniciar ${word.toLowerCase()} con ${pet.name}`}
-            detail={walking ? `Llevas ${clock(now - data.activeWalkStart!)}` : 'Tiempo y metas en vivo'}
+            detail={walking ? `Llevas ${clock(now - data.activeWalkStart!)}` : 'Elige tu objetivo y sal'}
             onPress={goWalk}
           />
           <MenuRow
+            compact
             icon="lista"
             title={`Resumen de ${word === 'Juego' ? 'juegos' : 'paseos'}`}
             detail={`Hoy: ${Math.round(today)} min`}
-            onPress={() => {
-              setMenu(false);
-              router.push('/resumen');
-            }}
+            onPress={go('/resumen')}
           />
-          <MenuRow
-            icon="mapa"
-            title="Mapa de exploración"
-            detail="El barrio con tus amigos cerca"
-            onPress={later('Mapa de exploración', 'Verás el barrio con tus amigos y sus mascotas cerca. Necesita GPS y cuentas en la nube.')}
-          />
-          <T.Eyebrow style={s.group}>CONQUISTA DE PARQUES</T.Eyebrow>
-          <MenuRow
-            icon="bandera"
-            tint="lilac"
-            title="Conquista de parques"
-            detail="Gana parques paseando en ellos"
-            onPress={later('Conquista de parques', 'Visita parques con tu mascota para conquistarlos y ganar puntos.')}
-          />
-          <MenuRow
-            icon="estrella"
-            tint="lilac"
-            title="Ficha del parque"
-            detail="Reseñas y retos de cada parque"
-            onPress={later('Ficha del parque', 'Cada parque tendrá su ficha con reseñas, retos y quién lo conquistó.')}
-          />
-          <MenuRow
-            icon="mapa"
-            tint="lilac"
-            title="Tus lugares"
-            detail="Parques, veterinarias y tiendas"
-            onPress={later('Tus lugares', 'Guarda tus parques, veterinarias y tiendas de confianza en Engativá.')}
-          />
+          <MenuRow compact icon="mapa" title="Mapa de exploración" detail="Parques, tiendas, veterinarias…" onPress={go('/explorar')} />
+          <MenuRow compact icon="bandera" tint="lilac" title="Parques" detail={`${data.parks.length} guardados · conquista`} onPress={go('/parques')} />
         </View>
       </Modal>
     </View>
@@ -299,12 +270,11 @@ const s = StyleSheet.create({
   menu: {
     position: 'absolute',
     left: 16,
-    right: 16,
-    maxWidth: 520,
-    alignSelf: 'center',
+    width: 290,
+    maxWidth: '92%',
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 8,
+    borderRadius: 20,
+    padding: 6,
   },
   group: { paddingHorizontal: 8, paddingTop: 8, paddingBottom: 2 },
 });

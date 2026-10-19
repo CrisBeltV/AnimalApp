@@ -354,3 +354,27 @@ export const GROOMING = [
   { id: 'unas', label: 'Uñas', icon: '✂️' },
   { id: 'peluqueria', label: 'Peluquería', icon: '💇' },
 ];
+
+export const PARK_FEATURES = [
+  { id: 'canina', label: 'Zona canina' },
+  { id: 'agua', label: 'Agua' },
+  { id: 'sombra', label: 'Sombra' },
+  { id: 'bolsas', label: 'Bolsas para heces' },
+  { id: 'reja', label: 'Cerrado con reja' },
+  { id: 'juegos', label: 'Juegos o agility' },
+];
+
+// Resumen de un parque: minutos, visitas, primera y última vez, y siguiente insignia.
+export function parkStats(entries: Entry[], parkId: string) {
+  const visits = entries.filter((e) => e.kind === 'paseo' && e.fields?.parqueId === parkId);
+  const minutes = Math.round(visits.reduce((s, e) => s + (e.minutes ?? 0), 0));
+  const next = [...PARK_BADGES].reverse().find((b) => b.min > minutes);
+  return {
+    visits,
+    minutes,
+    badge: parkBadge(minutes),
+    next,
+    last: visits[0]?.at,
+    first: visits[visits.length - 1]?.at,
+  };
+}

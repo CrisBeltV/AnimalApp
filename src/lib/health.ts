@@ -10,6 +10,7 @@ export type Field = {
   number?: boolean;
   remind?: string; // si tiene fecha, se ofrece recordatorio con este texto
   lookup?: boolean; // dato general que se podrá autocompletar desde internet
+  group?: string; // título de un grupo de campos, como la tabla nutricional
 };
 
 export const VACUNA_FIELDS: Field[] = [
@@ -47,6 +48,11 @@ export const ALIMENTO_FIELDS: Field[] = [
   { key: 'bolsaKg', label: 'Tamaño del empaque (kg)', placeholder: '8', number: true },
   { key: 'apertura', label: 'Fecha en que lo abriste', placeholder: 'DD/MM/AAAA', required: true, date: true },
   { key: 'caducidad', label: 'Fecha de caducidad', placeholder: 'DD/MM/AAAA', date: true, remind: 'Se vence el alimento' },
+  { key: 'kcalKg', label: 'Energía (kcal por kg)', placeholder: '3600', number: true, group: 'Tabla nutricional del empaque' },
+  { key: 'proteina', label: 'Proteína (%)', placeholder: '25', number: true, group: 'Tabla nutricional del empaque' },
+  { key: 'grasa', label: 'Grasa (%)', placeholder: '14', number: true, group: 'Tabla nutricional del empaque' },
+  { key: 'fibra', label: 'Fibra (%)', placeholder: '3,5', number: true, group: 'Tabla nutricional del empaque' },
+  { key: 'humedad', label: 'Humedad (%)', placeholder: '10', number: true, group: 'Tabla nutricional del empaque' },
   { key: 'ingredientes', label: 'Ingredientes', placeholder: 'Lo que dice el empaque', multiline: true },
   { key: 'recomendada', label: 'Porción recomendada en el empaque', placeholder: 'Según el peso de la mascota', multiline: true },
   { key: 'nota', label: 'Notas', placeholder: 'Le gusta, le cae mal…', multiline: true },

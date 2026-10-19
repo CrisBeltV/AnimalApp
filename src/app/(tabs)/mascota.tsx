@@ -35,6 +35,7 @@ import {
   weekMinutes,
 } from '../../lib/game';
 import { kg } from '../../lib/format';
+import { dailyKcal, dayNutrition } from '../../lib/foods';
 import { formatDate } from '../../lib/health';
 import { newEntry, openEntry } from '../../lib/routes';
 import { useStore } from '../../lib/store';
@@ -301,7 +302,7 @@ function Actividad({ data, now }: { data: AppData; now: number }) {
             const badge = parkBadge(p.minutes);
             const nextBadge = [...PARK_BADGES].reverse().find((b) => b.min > p.minutes);
             return (
-              <View key={p.id} style={{ gap: 4 }}>
+              <Pressable key={p.id} onPress={() => router.push({ pathname: '/parque', params: { id: p.id } })} style={{ gap: 4 }}>
                 <View style={s.rowBetween}>
                   <T.Black style={{ flex: 1 }}>
                     {badge?.icon ?? '🌳'} {p.name}
@@ -309,10 +310,11 @@ function Actividad({ data, now }: { data: AppData; now: number }) {
                   <T.Muted style={{ fontSize: 13 }}>{p.minutes} min</T.Muted>
                 </View>
                 <Bar value={nextBadge ? (p.minutes / nextBadge.min) * 100 : 100} color={colors.found} />
-              </View>
+              </Pressable>
             );
           })
         )}
+        <Button label="Ver todos los parques" onPress={() => router.push('/parques')} />
       </Card>
       <Card style={[s.rowBetween, { backgroundColor: colors.lilacSoft }]}>
         <View style={{ flex: 1, gap: 6 }}>
@@ -380,7 +382,11 @@ function Comida({ data, now }: { data: AppData; now: number }) {
           <T.Muted style={{ fontSize: 13 }}>Toma foto de la bolsa o la lata. La app te avisará cuando se esté acabando o vaya a vencer.</T.Muted>
         </Card>
       )}
-      <Button label={food ? 'Registrar bolsa nueva' : 'Registrar su alimento'} onPress={() => add('alimento')} />
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <Button label={food ? 'Bolsa nueva' : 'Su alimento'} style={{ flex: 1 }} onPress={() => add('alimento')} />
+        <Button label="Registrar comida" kind="solid" style={{ flex: 1 }} onPress={() => add('comida')} />
+      </View>
+      <Balance data={data} now={now} />
       <Card style={{ gap: 8 }}>
         <View style={s.rowBetween}>
           <T.Black>Comidas de hoy</T.Black>
@@ -413,8 +419,49 @@ function Comida({ data, now }: { data: AppData; now: number }) {
           {days} {days === 1 ? 'día' : 'días'}
         </T.Display>
       </Card>
-      <Button label="Registrar comida" kind="solid" onPress={() => add('comida')} />
     </>
+  );
+}
+
+// Balance nutricional del día con las comidas que tienen gramos.
+function Balance({ data, now }: { data: AppData; now: number }) {
+  const pet = data.pet!;
+  const day = dayNutrition(data.entries, startOfDay(now));
+  const weight = lastWeight(data.entries);
+  const need = weight ? dailyKcal(weight, pet.species) : null;
+  const rows: [string, number, string][] = [
+    ['Proteína', day.proteina, colors.accent],
+    ['Grasa', day.grasa, colors.lilacStrong],
+    ['Fibra', day.fibra, colors.found],
+  ];
+  const max = Math.max(1, ...rows.map((r) => r[1]));
+  return (
+    <Card style={{ gap: 8 }}>
+      <View style={s.rowBetween}>
+        <T.Black>Balance de hoy</T.Black>
+        <T.Muted style={{ fontSize: 13 }}>
+          {day.meals} {day.meals === 1 ? 'comida' : 'comidas'} con gramos
+        </T.Muted>
+      </View>
+      <Big value={`${day.kcal}`} unit={need ? `de ~${need} kcal` : 'kcal'} />
+      {need ? (
+        <Bar value={(day.kcal / need) * 100} color={day.kcal > need * 1.1 ? colors.lost : colors.found} />
+      ) : (
+        <T.Muted style={{ fontSize: 13 }}>Registra el peso de {pet.name} para calcular cuánta energía necesita al día.</T.Muted>
+      )}
+      {rows.map(([label, value, color]) => (
+        <View key={label} style={{ gap: 2 }}>
+          <View style={s.rowBetween}>
+            <T.Bold style={{ fontSize: 14 }}>{label}</T.Bold>
+            <T.Muted style={{ fontSize: 13 }}>{value} g</T.Muted>
+          </View>
+          <Bar value={(value / max) * 100} color={color} />
+        </View>
+      ))}
+      <T.Muted style={{ fontSize: 12 }}>
+        Es un cálculo aproximado con la tabla de cada alimento. La dieta exacta la define tu veterinario.
+      </T.Muted>
+    </Card>
   );
 }
 

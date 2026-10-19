@@ -1,12 +1,11 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Rect } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PetDrawing } from '../components/PetDrawing';
 import { BackHeader, Button, T, when } from '../components/ui';
-import { sampleReports } from '../lib/samples';
 import { useStore } from '../lib/store';
 import { colors, fonts } from '../lib/theme';
 import type { ReportKind } from '../lib/types';
@@ -15,11 +14,12 @@ import { useNow } from '../lib/useNow';
 type Tab = 'todas' | ReportKind;
 
 export default function Perdidas() {
-  const { data } = useStore();
+  const { reports, refreshReports } = useStore();
   const insets = useSafeAreaInsets();
   const now = useNow();
   const [tab, setTab] = useState<Tab>('todas');
-  const all = [...data.reports, ...sampleReports(now)];
+  const all = reports(now);
+  useEffect(refreshReports, [refreshReports]);
   const lost = all.filter((r) => r.kind === 'perdida');
   const found = all.filter((r) => r.kind === 'encontrada');
   const shown = tab === 'todas' ? all : tab === 'perdida' ? lost : found;
@@ -97,7 +97,7 @@ export default function Perdidas() {
                 <T.Muted style={{ fontSize: 13 }}>
                   {isLost ? '' : 'Encontrada en '}
                   {r.place}
-                  {r.distance ? ` · a ${r.distance}` : ' · tu reporte'}
+                  {r.distance ? ` · a ${r.distance}` : r.mine === false ? ' · de un vecino' : ' · tu reporte'}
                 </T.Muted>
               </View>
             </Pressable>
