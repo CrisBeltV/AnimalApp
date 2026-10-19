@@ -4,7 +4,7 @@ import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AccountButton } from '../../components/AccountButton';
-import { GameMap } from '../../components/GameMap';
+import { BarrioMap } from '../../components/BarrioMap';
 import { Icon } from '../../components/Icon';
 import { PetDrawing } from '../../components/PetDrawing';
 import { Bar, MenuRow, T, soon } from '../../components/ui';
@@ -65,7 +65,73 @@ export default function Inicio() {
 
   return (
     <View style={s.screen}>
-      <GameMap />
+      <BarrioMap
+        initialWidth={700}
+        controlsBottom={insets.bottom + 112}
+        markers={[
+          {
+            id: 'parque', maxWidth: 1800,
+            x: 230,
+            y: -260,
+            node: (
+              <Pressable onPress={() => router.push('/parques')} style={s.pin}>
+                <View style={[s.pinLabel, softShadow]}>
+                  <T.Black style={s.pinText}>Parque nuevo · +30</T.Black>
+                </View>
+                <View style={[s.pinDot, { backgroundColor: colors.accent, width: 34, height: 34 }]}>
+                  <Icon name="estrella" size={14} color="#FFFFFF" strokeWidth={3} />
+                </View>
+              </Pressable>
+            ),
+          },
+          {
+            id: 'perdido', maxWidth: 1800,
+            x: -300,
+            y: -120,
+            node: (
+              <Pressable onPress={() => router.push('/perdidas')} style={s.pin}>
+                <View style={[s.pinLabel, softShadow]}>
+                  <View style={[s.smallDot, { backgroundColor: colors.lost }]} />
+                  <T.Black style={s.pinText}>Perdido · Rocky · 600 m</T.Black>
+                </View>
+                <View style={[s.pinDot, s.lostHalo, { backgroundColor: colors.lost, width: 40, height: 40 }]}>
+                  <Icon name="huella" size={18} color="#FFFFFF" />
+                </View>
+              </Pressable>
+            ),
+          },
+          {
+            id: 'encontrado', maxWidth: 1800,
+            x: 260,
+            y: 330,
+            node: (
+              <Pressable onPress={() => router.push('/perdidas')} style={s.pin}>
+                <View style={[s.pinLabel, softShadow]}>
+                  <View style={[s.smallDot, { backgroundColor: colors.found }]} />
+                  <T.Black style={s.pinText}>Encontrado · 1,1 km</T.Black>
+                </View>
+                <View style={[s.pinDot, { backgroundColor: colors.found, width: 36, height: 36 }]}>
+                  <Icon name="huella" size={16} color="#FFFFFF" />
+                </View>
+              </Pressable>
+            ),
+          },
+          {
+            id: 'mascota',
+            x: 0,
+            y: 0,
+            node: (
+              <Pressable accessibilityLabel={`${pet.name}, tu mascota`} onPress={() => router.navigate('/mascota')} style={s.petSpot}>
+                <View style={s.petShadow} />
+                <PetDrawing species={pet.species} mood={petMood} size={96} />
+                <View style={[s.petName, softShadow]}>
+                  <T.Black style={{ fontSize: 13 }}>{pet.name}</T.Black>
+                </View>
+              </Pressable>
+            ),
+          },
+        ]}
+      />
 
       <View style={[s.topRow, { top: insets.top + 12 }]}>
         <Pressable
@@ -110,51 +176,7 @@ export default function Inicio() {
         <Icon name="bandera" size={22} color={colors.accent} strokeWidth={2.4} />
       </Pressable>
 
-      <Pressable
-        onPress={() => router.push('/parques')}
-        style={[s.pin, { left: '60%', top: '36%' }]}
-      >
-        <View style={[s.pinLabel, softShadow]}>
-          <T.Black style={s.pinText}>Parque nuevo · +30</T.Black>
-        </View>
-        <View style={[s.pinDot, { backgroundColor: colors.accent, width: 34, height: 34 }]}>
-          <Icon name="estrella" size={14} color="#FFFFFF" strokeWidth={3} />
-        </View>
-      </Pressable>
-
-      <Pressable onPress={() => router.push('/perdidas')} style={[s.pin, { left: '4%', top: '37%' }]}>
-        <View style={[s.pinLabel, softShadow]}>
-          <View style={[s.smallDot, { backgroundColor: colors.lost }]} />
-          <T.Black style={s.pinText}>Perdido · Rocky · 600 m</T.Black>
-        </View>
-        <View style={[s.pinDot, s.lostHalo, { backgroundColor: colors.lost, width: 40, height: 40 }]}>
-          <Icon name="huella" size={18} color="#FFFFFF" />
-        </View>
-      </Pressable>
-
-      <Pressable onPress={() => router.push('/perdidas')} style={[s.pin, { left: '56%', top: '63%' }]}>
-        <View style={[s.pinLabel, softShadow]}>
-          <View style={[s.smallDot, { backgroundColor: colors.found }]} />
-          <T.Black style={s.pinText}>Encontrado · 1,1 km</T.Black>
-        </View>
-        <View style={[s.pinDot, { backgroundColor: colors.found, width: 36, height: 36 }]}>
-          <Icon name="huella" size={16} color="#FFFFFF" />
-        </View>
-      </Pressable>
-
-      <Pressable
-        accessibilityLabel={`${pet.name}, tu mascota`}
-        onPress={() => router.navigate('/mascota')}
-        style={s.petSpot}
-      >
-        <View style={s.petShadow} />
-        <PetDrawing species={pet.species} mood={petMood} size={112} />
-        <View style={[s.petName, softShadow]}>
-          <T.Black style={{ fontSize: 13 }}>{pet.name}</T.Black>
-        </View>
-      </Pressable>
-
-      <Text style={[s.exampleNote, { bottom: insets.bottom + 168 }]}>Pines de ejemplo · mapa real con GPS en la siguiente versión</Text>
+      <Text style={[s.exampleNote, { bottom: insets.bottom + 168 }]}>Mapa dibujado del barrio · pines de ejemplo · GPS muy pronto</Text>
 
       <Modal transparent visible={menu} animationType="fade" onRequestClose={() => setMenu(false)}>
         <Pressable accessibilityLabel="Cerrar menú" style={s.backdrop} onPress={() => setMenu(false)} />
@@ -262,7 +284,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  pin: { position: 'absolute', alignItems: 'center', gap: 4 },
+  pin: { alignItems: 'center', gap: 4 },
   pinLabel: {
     height: 26,
     paddingHorizontal: 10,
@@ -281,10 +303,10 @@ const s = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 0 },
   },
-  petSpot: { position: 'absolute', left: '50%', top: '46%', marginLeft: -56, width: 112, alignItems: 'center' },
+  petSpot: { width: 112, alignItems: 'center', marginTop: 40 },
   petShadow: {
     position: 'absolute',
-    top: 96,
+    top: 82,
     width: 72,
     height: 16,
     borderRadius: 36,
@@ -302,7 +324,7 @@ const s = StyleSheet.create({
   exampleNote: {
     position: 'absolute',
     left: 16,
-    right: 16,
+    right: 76,
     textAlign: 'center',
     fontFamily: fonts.bodyBold,
     fontWeight: '700',

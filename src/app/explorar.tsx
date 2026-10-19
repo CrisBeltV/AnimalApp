@@ -3,11 +3,12 @@ import { useState } from 'react';
 import { Linking, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { GameMap } from '../components/GameMap';
+import { BarrioMap } from '../components/BarrioMap';
 import { Icon } from '../components/Icon';
 import { Chips } from '../components/form';
 import { BackHeader, Button, T } from '../components/ui';
 import type { IconName } from '../components/Icon';
+import { spotFor } from '../lib/barrio';
 import { parkStats } from '../lib/game';
 import { useStore } from '../lib/store';
 import { colors, fonts, radius, shadow, softShadow } from '../lib/theme';
@@ -27,13 +28,6 @@ const CATEGORIES: { id: Category; label: string; icon: IconName; pin: string; em
 ];
 
 type Place = { id: string; cat: Category; name: string; detail?: string; address?: string; phone?: string; open?: () => void };
-
-// Posición fija pero aproximada en el dibujo del mapa, hasta tener GPS.
-function spot(id: string) {
-  let h = 0;
-  for (const c of id) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-  return { left: `${12 + (h % 70)}%` as const, top: `${18 + ((h >> 8) % 45)}%` as const };
-}
 
 // Mapa de exploración: el barrio con tus lugares; se eligen una o varias categorías.
 export default function Explorar() {
@@ -82,18 +76,25 @@ export default function Explorar() {
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <BackHeader title="Mapa de exploración" />
       <View style={s.map}>
-        <GameMap />
-        {list.slice(0, 16).map((p) => (
-          <Pressable key={p.id} onPress={p.open} style={[s.pin, spot(p.id)]}>
-            <View style={[s.pinLabel, softShadow]}>
-              <Text style={{ fontSize: 12 }}>{info(p.cat).emoji}</Text>
-              <T.Black style={{ fontSize: 11 }} numberOfLines={1}>
-                {p.name}
-              </T.Black>
-            </View>
-            <View style={[s.dot, { backgroundColor: info(p.cat).pin }]} />
-          </Pressable>
-        ))}
+        <BarrioMap
+          initialWidth={1400}
+          controlsBottom={28}
+          markers={list.map((p) => ({
+            id: p.id,
+            ...spotFor(p.id),
+            node: (
+              <Pressable onPress={p.open} style={s.pin}>
+                <View style={[s.pinLabel, softShadow]}>
+                  <Text style={{ fontSize: 12 }}>{info(p.cat).emoji}</Text>
+                  <T.Black style={{ fontSize: 11 }} numberOfLines={1}>
+                    {p.name}
+                  </T.Black>
+                </View>
+                <View style={[s.dot, { backgroundColor: info(p.cat).pin }]} />
+              </Pressable>
+            ),
+          }))}
+        />
         <Pressable
           accessibilityRole="button"
           accessibilityState={{ expanded: menu }}
@@ -106,7 +107,7 @@ export default function Explorar() {
           </T.Black>
           <Icon name="chevronDown" size={18} color={colors.text} strokeWidth={2.4} />
         </Pressable>
-        <Text style={s.note}>Ubicaciones aproximadas · mapa real con GPS muy pronto</Text>
+        <Text style={s.note}>Ubicaciones aproximadas · GPS muy pronto</Text>
       </View>
 
       <ScrollView contentContainerStyle={[s.page, { paddingBottom: insets.bottom + 30 }]} keyboardShouldPersistTaps="handled">
@@ -214,7 +215,7 @@ export default function Explorar() {
 }
 
 const s = StyleSheet.create({
-  map: { height: 300, overflow: 'hidden', backgroundColor: colors.grass },
+  map: { height: 340, overflow: 'hidden', backgroundColor: colors.grass },
   catBtn: {
     position: 'absolute',
     top: 12,
@@ -227,7 +228,7 @@ const s = StyleSheet.create({
     borderRadius: 23,
     backgroundColor: 'rgba(255,255,255,0.96)',
   },
-  pin: { position: 'absolute', alignItems: 'center', gap: 2, maxWidth: 140 },
+  pin: { alignItems: 'center', gap: 2, maxWidth: 160 },
   pinLabel: {
     flexDirection: 'row',
     alignItems: 'center',

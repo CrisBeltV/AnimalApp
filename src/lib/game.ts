@@ -332,8 +332,58 @@ export function goalText(goal: WalkGoal, parks: Park[]) {
     .join(' · ');
 }
 
-export function sameGoal(a: WalkGoal, b: WalkGoal) {
-  return a.tipo === b.tipo && a.minutes === b.minutes && a.km === b.km && a.parqueId === b.parqueId && !!a.explorar === !!b.explorar;
+// Clave de un objetivo: dos paseos con la misma clave son "el mismo paseo".
+export function goalKey(g: WalkGoal) {
+  return [g.tipo, g.minutes ?? 0, g.km ?? 0, g.parqueId ?? '', g.explorar ? 1 : 0].join('|');
+}
+
+export function goalFromKey(key?: string): WalkGoal | null {
+  if (!key) return null;
+  const [tipo, minutes, km, parqueId, explorar] = key.split('|');
+  if (!tipo) return null;
+  const g: WalkGoal = { tipo };
+  if (Number(minutes) > 0) g.minutes = Number(minutes);
+  if (Number(km) > 0) g.km = Number(km);
+  if (parqueId) g.parqueId = parqueId;
+  if (explorar === '1') g.explorar = true;
+  return g;
+}
+
+// El objetivo de un paseo ya hecho. Los anotados a mano usan sus minutos como meta.
+export function entryGoal(e: Entry): WalkGoal {
+  const f = e.fields ?? {};
+  const g: WalkGoal = { tipo: f.tipo ?? 'paseo' };
+  const minutes = f.objetivo ? Number(f.metaMin) : Math.max(5, Math.round((e.minutes ?? 0) / 5) * 5);
+  if (minutes > 0) g.minutes = minutes;
+  if (Number(f.metaKm) > 0) g.km = Number(f.metaKm);
+  if (f.parqueId) g.parqueId = f.parqueId;
+  if (f.explorar) g.explorar = true;
+  return g;
+}
+
+// Un paseo se vuelve recurrente cuando se hace con el mismo objetivo 3 veces o más.
+export const RECURRENT_TIMES = 3;
+
+export function walkGoals(data: AppData) {
+  const groups = new Map<string, { key: string; goal: WalkGoal; count: number; last: number; started: number }>();
+  for (const e of data.entries) {
+    if (e.kind !== 'paseo') continue;
+    const goal = entryGoal(e);
+    const key = goalKey(goal);
+    const g = groups.get(key) ?? { key, goal, count: 0, last: e.at, started: 0 };
+    g.count += 1;
+    if (e.fields?.objetivo) g.started += 1;
+    g.last = Math.max(g.last, e.at);
+    groups.set(key, g);
+  }
+  const named = new Map((data.routines ?? []).map((r) => [r.id, r]));
+  return [...groups.values()]
+    .sort((a, b) => b.last - a.last)
+    .map((g) => ({ ...g, name: named.get(g.key)?.name ?? goalText(g.goal, data.parks), hidden: !!named.get(g.key)?.hidden }));
+}
+
+export function recurrentWalks(data: AppData) {
+  return walkGoals(data).filter((g) => g.started >= RECURRENT_TIMES && !g.hidden);
 }
 
 export const MOODS = [

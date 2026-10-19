@@ -41,11 +41,6 @@ export function Input({
             <T.Black style={{ fontSize: 13 }}>Hoy</T.Black>
           </Pressable>
         )}
-        {field.date && (
-          <Pressable accessibilityLabel={`Calendario: ${field.label}`} onPress={() => setCalendar(true)} style={[s.chip, { backgroundColor: colors.lilacSoft }]}>
-            <T.Black style={{ fontSize: 13 }}>📅 Calendario</T.Black>
-          </Pressable>
-        )}
       </View>
       {field.date && (
         <CalendarSheet
@@ -59,19 +54,27 @@ export function Input({
           }}
         />
       )}
-      <TextInput
-        value={value}
-        onChangeText={onChange}
-        placeholder={field.placeholder}
-        placeholderTextColor={colors.textMuted}
-        keyboardType={field.number ? 'number-pad' : field.date ? 'numbers-and-punctuation' : 'default'}
-        multiline={field.multiline}
-        style={[
-          s.input,
-          field.multiline && { minHeight: 72, paddingTop: 12, textAlignVertical: 'top' },
-          (missing || badDate) && { borderColor: colors.lost, backgroundColor: colors.lostSoft },
-        ]}
-      />
+      <View>
+        <TextInput
+          value={value}
+          onChangeText={onChange}
+          placeholder={field.placeholder}
+          placeholderTextColor={colors.textMuted}
+          keyboardType={field.number ? 'number-pad' : field.date ? 'numbers-and-punctuation' : 'default'}
+          multiline={field.multiline}
+          style={[
+            s.input,
+            field.date && s.dateInput,
+            field.multiline && { minHeight: 72, paddingTop: 12, textAlignVertical: 'top' },
+            (missing || badDate) && { borderColor: colors.lost, backgroundColor: colors.lostSoft },
+          ]}
+        />
+        {field.date && (
+          <Pressable accessibilityLabel={`Calendario: ${field.label}`} onPress={() => setCalendar(true)} style={s.calendarBtn}>
+            <Text style={{ fontSize: 20 }}>📅</Text>
+          </Pressable>
+        )}
+      </View>
       {badDate ? <T.Muted style={{ color: colors.lostText, fontSize: 13 }}>Escribe la fecha como DD/MM/AAAA</T.Muted> : null}
       {missing ? <T.Muted style={{ color: colors.lostText, fontSize: 13 }}>Falta este dato</T.Muted> : null}
     </View>
@@ -295,6 +298,18 @@ export function finish() {
 
 const s = StyleSheet.create({
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  dateInput: { paddingLeft: 58 },
+  calendarBtn: {
+    position: 'absolute',
+    left: 5,
+    top: 5,
+    bottom: 5,
+    width: 44,
+    borderRadius: 10,
+    backgroundColor: colors.lilacSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   chip: {
     height: 30,
     paddingHorizontal: 12,

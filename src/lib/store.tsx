@@ -45,7 +45,6 @@ type Store = {
   savePark: (park: Omit<Park, 'id'> & { id?: string }) => string;
   removePark: (id: string) => void;
   saveRoutine: (routine: Omit<WalkRoutine, 'id'> & { id?: string }) => string;
-  removeRoutine: (id: string) => void;
   saveProvider: (provider: Omit<Provider, 'id'> & { id?: string }) => string;
   setSettings: (patch: Partial<Settings>) => void;
   startWalk: (goal?: WalkGoal) => void;
@@ -257,7 +256,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         change((d) => ({ ...d, routines: [{ ...routine, id }, ...(d.routines ?? []).filter((r) => r.id !== id)] }));
         return id;
       },
-      removeRoutine: (id) => change((d) => ({ ...d, routines: (d.routines ?? []).filter((r) => r.id !== id) })),
       saveProvider: (provider) => {
         const id = provider.id ?? `prov-${Date.now()}`;
         change((d) => ({ ...d, providers: [{ ...provider, id }, ...d.providers.filter((p) => p.id !== id)] }));
@@ -271,8 +269,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const minutes = Math.max(1, Math.round((Date.now() - start) / 60000));
         const goal = data.walkGoal;
         change((d) => ({ ...d, activeWalkStart: null, walkGoal: undefined }));
-        const fields: Record<string, string> = { tipo: goal?.tipo ?? 'paseo' };
+        const fields: Record<string, string> = { tipo: goal?.tipo ?? 'paseo', objetivo: '1' };
         if (goal?.parqueId) fields.parqueId = goal.parqueId;
+        if (goal?.minutes) fields.metaMin = String(goal.minutes);
+        if (goal?.km) fields.metaKm = String(goal.km);
+        if (goal?.explorar) fields.explorar = '1';
         const id = addEntry({ kind: 'paseo', minutes, at: start, fields });
         return { minutes, id };
       },

@@ -1,95 +1,120 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import { BackHeader, Button, Card, MenuRow, T } from '../components/ui';
-import { activityWord, goalText, minutesOn, startOfDay } from '../lib/game';
+import { Icon } from '../components/Icon';
+import type { IconName } from '../components/Icon';
+import { BackHeader, Button, T } from '../components/ui';
+import { RECURRENT_TIMES, activityWord, minutesOn, recurrentWalks, startOfDay } from '../lib/game';
 import { clock } from '../lib/format';
 import { useStore } from '../lib/store';
-import { colors } from '../lib/theme';
+import { colors, shadow } from '../lib/theme';
 import { useNow } from '../lib/useNow';
 
-// Iniciar paseo: uno nuevo, uno recurrente o ver el resumen.
+// Paseo con la mascota: tres opciones iguales, cada una abre su propia ventana.
 export default function Paseos() {
-  const { data, removeRoutine } = useStore();
+  const { data } = useStore();
   const pet = data.pet!;
   const word = activityWord(pet.species);
   const plural = word === 'Juego' ? 'juegos' : 'paseos';
   const walking = data.activeWalkStart !== null;
   const now = useNow(walking ? 1000 : 30000);
-  const routines = data.routines ?? [];
+  const recurrent = recurrentWalks(data);
   const today = minutesOn(data.entries, startOfDay(now));
-  const [removing, setRemoving] = useState<string | null>(null);
+  const [ask, setAsk] = useState(false);
+
+  const options: { icon: IconName; title: string; detail: string; onPress: () => void }[] = [
+    {
+      icon: 'reloj',
+      title: walking ? `${word} en curso` : `Iniciar nuevo ${word.toLowerCase()}`,
+      detail: walking ? `Llevas ${clock(now - data.activeWalkStart!)}` : 'Elige tu objetivo y sal',
+      onPress: () => (walking ? router.push('/paseo') : setAsk(true)),
+    },
+    {
+      icon: 'estrella',
+      title: `${word === 'Juego' ? 'Juegos' : 'Paseos'} recurrentes`,
+      detail: recurrent.length ? `${recurrent.length} guardados` : `Los que repitas ${RECURRENT_TIMES} veces`,
+      onPress: () => router.push('/recurrentes'),
+    },
+    {
+      icon: 'lista',
+      title: `Resumen de ${plural}`,
+      detail: `Hoy: ${Math.round(today)} min`,
+      onPress: () => router.push('/resumen'),
+    },
+  ];
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <BackHeader title={`${word} con ${pet.name}`} />
       <ScrollView contentContainerStyle={s.page}>
-        {walking ? (
-          <Button label={`${word} en curso · ${clock(now - data.activeWalkStart!)}`} kind="solid" onPress={() => router.push('/paseo')} />
-        ) : (
-          <Button label={`Iniciar nuevo ${word.toLowerCase()}`} kind="solid" onPress={() => router.push('/paseo')} />
-        )}
-
-        <Card style={{ gap: 6 }}>
-          <T.Black>{word === 'Juego' ? 'Juegos recurrentes' : 'Paseos recurrentes'}</T.Black>
-          {routines.length === 0 ? (
-            <T.Muted style={{ fontSize: 13 }}>
-              Cada objetivo nuevo que elijas (paseo, juego, entrenamiento) queda guardado aquí para repetirlo con un toque.
-            </T.Muted>
-          ) : (
-            routines.map((r) => (
-              <View key={r.id} style={s.row}>
-                <Pressable
-                  accessibilityLabel={`Usar ${r.name}`}
-                  disabled={walking}
-                  onPress={() => router.push({ pathname: '/paseo', params: { rutina: r.id } })}
-                  style={{ flex: 1, gap: 2, opacity: walking ? 0.5 : 1 }}
-                >
-                  <T.Black>{r.name}</T.Black>
-                  <T.Muted style={{ fontSize: 13 }}>{goalText(r, data.parks)}</T.Muted>
-                </Pressable>
-                {removing === r.id ? (
-                  <View style={{ flexDirection: 'row', gap: 6 }}>
-                    <Pressable onPress={() => setRemoving(null)} style={s.small}>
-                      <T.Black style={{ fontSize: 13 }}>No</T.Black>
-                    </Pressable>
-                    <Pressable
-                      onPress={() => {
-                        removeRoutine(r.id);
-                        setRemoving(null);
-                      }}
-                      style={[s.small, { backgroundColor: colors.lostSoft }]}
-                    >
-                      <T.Black style={{ fontSize: 13, color: colors.lostText }}>Quitar</T.Black>
-                    </Pressable>
-                  </View>
-                ) : (
-                  <Pressable accessibilityLabel={`Quitar ${r.name}`} onPress={() => setRemoving(r.id)} style={s.small}>
-                    <T.Black style={{ fontSize: 13, color: colors.textMuted }}>✕</T.Black>
-                  </Pressable>
-                )}
-              </View>
-            ))
-          )}
-        </Card>
-
-        <Card style={{ padding: 6 }}>
-          <MenuRow
-            compact
-            icon="lista"
-            title={`Resumen de ${plural}`}
-            detail={`Hoy: ${Math.round(today)} min`}
-            onPress={() => router.push('/resumen')}
-          />
-        </Card>
+        {options.map((o) => (
+          <Pressable key={o.icon} accessibilityRole="button" onPress={o.onPress} style={[s.option, shadow]}>
+            <View style={s.icon}>
+              <Icon name={o.icon} size={26} color={colors.accent} strokeWidth={2.2} />
+            </View>
+            <View style={{ flex: 1, gap: 2 }}>
+              <T.Display style={{ fontSize: 19 }}>{o.title}</T.Display>
+              <T.Muted style={{ fontSize: 13 }}>{o.detail}</T.Muted>
+            </View>
+            <Icon name="chevronRight" size={20} color={colors.textMuted} strokeWidth={2.4} />
+          </Pressable>
+        ))}
       </ScrollView>
+
+      <Modal transparent visible={ask} animationType="fade" onRequestClose={() => setAsk(false)}>
+        <Pressable accessibilityLabel="Cerrar pregunta" style={s.backdrop} onPress={() => setAsk(false)} />
+        <View style={[s.sheet, shadow]}>
+          <T.Display style={{ fontSize: 20, textAlign: 'center' }}>¿Quieres seleccionar un {word.toLowerCase()} ya registrado?</T.Display>
+          <T.Muted style={{ textAlign: 'center', fontSize: 13 }}>Puedes repetir el objetivo de uno que ya hicieron.</T.Muted>
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <Button
+              label="No"
+              kind="secondary"
+              style={{ flex: 1 }}
+              onPress={() => {
+                setAsk(false);
+                router.push('/paseo');
+              }}
+            />
+            <Button
+              label="Sí"
+              kind="solid"
+              style={{ flex: 1 }}
+              onPress={() => {
+                setAsk(false);
+                router.push({ pathname: '/resumen', params: { elegir: '1' } });
+              }}
+            />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
 const s = StyleSheet.create({
   page: { paddingHorizontal: 16, paddingBottom: 40, gap: 14, width: '100%', maxWidth: 560, alignSelf: 'center' },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.grey },
-  small: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 14, backgroundColor: colors.bg },
+  option: {
+    minHeight: 96,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingHorizontal: 18,
+    borderRadius: 24,
+    backgroundColor: colors.card,
+  },
+  icon: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.blue, alignItems: 'center', justifyContent: 'center' },
+  backdrop: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15,37,64,0.35)' },
+  sheet: {
+    position: 'absolute',
+    alignSelf: 'center',
+    top: '30%',
+    width: 340,
+    maxWidth: '92%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 20,
+    gap: 14,
+  },
 });

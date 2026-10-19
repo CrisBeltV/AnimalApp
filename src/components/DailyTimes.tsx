@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { cancel, canNotify, scheduleDaily } from '../lib/notify';
 import { useStore } from '../lib/store';
 import { colors, fonts, radius } from '../lib/theme';
-import { parseTime } from './form';
+import { Check, parseTime } from './form';
 import { Button, T } from './ui';
 
 const two = (n: number) => String(n).padStart(2, '0');
@@ -78,69 +78,106 @@ function Stepper({ label, value, onMinus, onPlus }: { label: string; value: stri
   );
 }
 
-// Horarios de comida: cada hora es un aviso diario en el teléfono. Toca uno para cambiarlo.
+// Horarios de comida: cada uno es un recordatorio diario con su nombre.
+// Con "Editar" se cambia la hora, el nombre o se apaga el aviso.
 export function MealTimes() {
   const { data, setSettings } = useStore();
   const pet = data.pet!;
   const { mealTimes, notifIds } = data.settings;
-  // editing: horario que se está cambiando ('' = uno nuevo); picking: la hora elegida.
+  const names = data.settings.mealNames ?? {};
+  const off = data.settings.mealOff ?? [];
+  // editing: horario que se está cambiando ('' = uno nuevo).
   const [editing, setEditing] = useState<string | null>(null);
   const [picking, setPicking] = useState('07:00');
+  const [name, setName] = useState('');
+  const [notify, setNotify] = useState(true);
 
   const open = (time: string) => {
     setEditing(time);
     setPicking(time || '07:00');
+    setName(time ? (names[time] ?? '') : '');
+    setNotify(time ? !off.includes(time) : true);
+  };
+  const drop = (time: string, ids: Record<string, string>, nm: Record<string, string>) => {
+    cancel(ids[`comida-${time}`]);
+    delete ids[`comida-${time}`];
+    delete nm[time];
   };
   const save = async () => {
     const old = editing;
     setEditing(null);
     const ids = { ...notifIds };
+    const nm = { ...names };
     let times = mealTimes;
     if (old) {
-      cancel(ids[`comida-${old}`]);
-      delete ids[`comida-${old}`];
+      drop(old, ids, nm);
       times = times.filter((m) => m !== old);
     }
-    if (!times.includes(picking)) {
+    if (times.includes(picking)) drop(picking, ids, nm);
+    if (notify) {
       const t = parseTime(picking)!;
-      const id = await scheduleDaily('Hora de comer', `Es hora de la comida de ${pet.name}`, t.hour, t.minute);
+      const label = name.trim();
+      const id = await scheduleDaily(label ? `Hora de: ${label}` : 'Hora de comer', `Es hora de la comida de ${pet.name}`, t.hour, t.minute);
       if (id) ids[`comida-${picking}`] = id;
-      times = [...times, picking].sort();
     }
-    setSettings({ mealTimes: times, notifIds: ids });
+    if (name.trim()) nm[picking] = name.trim();
+    setSettings({
+      mealTimes: [...times.filter((m) => m !== picking), picking].sort(),
+      notifIds: ids,
+      mealNames: nm,
+      mealOff: [...off.filter((m) => m !== old && m !== picking), ...(notify ? [] : [picking])],
+    });
   };
   const remove = (time: string) => {
     setEditing(null);
-    cancel(notifIds[`comida-${time}`]);
-    const rest = { ...notifIds };
-    delete rest[`comida-${time}`];
-    setSettings({ mealTimes: mealTimes.filter((m) => m !== time), notifIds: rest });
+    const ids = { ...notifIds };
+    const nm = { ...names };
+    drop(time, ids, nm);
+    setSettings({ mealTimes: mealTimes.filter((m) => m !== time), notifIds: ids, mealNames: nm, mealOff: off.filter((m) => m !== time) });
   };
+
+  const editor = (
+    <View style={s.editBox}>
+      <T.Black>{editing ? `Editar recordatorio de las ${time12(editing)}` : 'Nuevo recordatorio de comida'}</T.Black>
+      <TimePicker value={picking} onChange={setPicking} />
+      <TextInput
+        value={name}
+        onChangeText={setName}
+        placeholder="Nombre (opcional): Desayuno, Cena…"
+        placeholderTextColor={colors.textMuted}
+        style={s.nameInput}
+      />
+      <Check label="Avisarme a esta hora" detail="Llega un aviso al teléfono todos los días" on={notify} onPress={() => setNotify(!notify)} />
+      <View style={{ flexDirection: 'row', gap: 10 }}>
+        <Button label="Cancelar" kind="secondary" style={{ flex: 1 }} onPress={() => setEditing(null)} />
+        <Button label={editing ? 'Guardar cambios' : `Añadir ${time12(picking)}`} kind="solid" style={{ flex: 1 }} onPress={save} />
+      </View>
+      {editing ? <Button label="Quitar este horario" kind="lost" onPress={() => remove(editing)} /> : null}
+    </View>
+  );
 
   return (
     <View style={{ gap: 10 }}>
       {mealTimes.length === 0 ? <T.Muted style={{ fontSize: 13 }}>Aún no hay horarios.</T.Muted> : null}
-      <View style={s.wrap}>
-        {mealTimes.map((m) => (
-          <Pressable key={m} accessibilityLabel={`Editar horario ${time12(m)}`} onPress={() => open(m)} style={[s.chip, s.on, editing === m && s.editing]}>
-            <T.Black style={{ fontSize: 15 }}>{time12(m)}</T.Black>
-            <T.Black style={{ fontSize: 13, color: colors.accent }}>✎</T.Black>
-          </Pressable>
-        ))}
-      </View>
-      {editing !== null ? (
-        <View style={s.editBox}>
-          <T.Black>{editing ? `Editar aviso de las ${time12(editing)}` : 'Nuevo horario'}</T.Black>
-          <TimePicker value={picking} onChange={setPicking} />
-          <View style={{ flexDirection: 'row', gap: 10 }}>
-            <Button label="Cancelar" kind="secondary" style={{ flex: 1 }} onPress={() => setEditing(null)} />
-            <Button label={editing ? 'Guardar cambio' : `Añadir ${time12(picking)}`} kind="solid" style={{ flex: 1 }} onPress={save} />
+      {mealTimes.map((m) =>
+        editing === m ? (
+          <View key={m}>{editor}</View>
+        ) : (
+          <View key={m} style={s.mealRow}>
+            <View style={{ flex: 1 }}>
+              <T.Black style={{ fontSize: 16 }}>
+                {time12(m)}
+                {names[m] ? ` · ${names[m]}` : ''}
+              </T.Black>
+              <T.Muted style={{ fontSize: 12 }}>{off.includes(m) ? '🔕 Aviso apagado' : '🔔 Aviso todos los días'}</T.Muted>
+            </View>
+            <Pressable accessibilityLabel={`Editar recordatorio ${time12(m)}`} onPress={() => open(m)} style={s.editBtn}>
+              <T.Black style={{ fontSize: 14, color: colors.accent }}>✎ Editar</T.Black>
+            </Pressable>
           </View>
-          {editing ? <Button label="Quitar este horario" kind="lost" onPress={() => remove(editing)} /> : null}
-        </View>
-      ) : (
-        <Button label="+ Añadir horario" onPress={() => open('')} />
+        ),
       )}
+      {editing === '' ? editor : editing === null ? <Button label="+ Añadir horario" onPress={() => open('')} /> : null}
       {!canNotify && <T.Muted style={{ fontSize: 12 }}>En el teléfono te llegará un aviso a cada hora.</T.Muted>}
     </View>
   );
@@ -200,6 +237,19 @@ const s = StyleSheet.create({
   },
   on: { backgroundColor: colors.blue, borderColor: colors.accent },
   editing: { backgroundColor: colors.lilacSoft, borderColor: colors.lilacStrong },
+  mealRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: radius.md, backgroundColor: colors.blue },
+  editBtn: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: radius.pill, backgroundColor: '#FFFFFF' },
+  nameInput: {
+    minHeight: 46,
+    backgroundColor: '#FFFFFF',
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: colors.grey,
+    paddingHorizontal: 14,
+    fontSize: 16,
+    fontFamily: fonts.body,
+    color: colors.body,
+  },
   editBox: { gap: 10, padding: 12, borderRadius: radius.md, backgroundColor: colors.bg },
   picker: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
   stepper: { alignItems: 'center', gap: 2 },

@@ -4,10 +4,10 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Check, Chips, Input, ParkPicker } from '../components/form';
-import { GameMap } from '../components/GameMap';
+import { BarrioMap } from '../components/BarrioMap';
 import { PetDrawing } from '../components/PetDrawing';
 import { Bar, Button, T } from '../components/ui';
-import { MISSION_XP, NEW_PARK_XP, WALK_GOALS, WALK_TYPES, activityWord, computeStats, goalText, minutesOn, missionGoal, mood, parkStats, sameGoal, startOfDay } from '../lib/game';
+import { MISSION_XP, NEW_PARK_XP, WALK_GOALS, WALK_TYPES, activityWord, computeStats, goalFromKey, goalKey, minutesOn, missionGoal, mood, parkStats, RECURRENT_TIMES, startOfDay, walkGoals } from '../lib/game';
 import { clock } from '../lib/format';
 import { useStore } from '../lib/store';
 import { colors, fonts, shadow } from '../lib/theme';
@@ -31,22 +31,22 @@ const KM_GOALS = [
 
 // Paseo en tres pasos: elegir el objetivo, el cronómetro en vivo y el resumen al terminar.
 export default function PaseoEnCurso() {
-  const params = useLocalSearchParams<{ parque?: string; rutina?: string }>();
+  const params = useLocalSearchParams<{ parque?: string; meta?: string }>();
   const { data, startWalk, finishWalk, cancelWalk, saveRoutine } = useStore();
   const insets = useSafeAreaInsets();
   const now = useNow(1000);
   const pet = data.pet!;
   const word = activityWord(pet.species);
   const start = data.activeWalkStart;
-  const routines = data.routines ?? [];
-  const routine = routines.find((r) => r.id === params.rutina);
+  // meta: objetivo de un paseo ya registrado que se quiere repetir.
+  const preset = goalFromKey(params.meta);
   const [summaryId, setSummaryId] = useState<string | null>(null);
-  const [tipo, setTipo] = useState(routine?.tipo ?? (pet.species === 'gato' ? 'juego' : 'paseo'));
-  const [time, setTime] = useState(routine ? String(routine.minutes ?? 0) : '30');
-  const [km, setKm] = useState(routine ? String(routine.km ?? 0) : '0');
-  const [park, setPark] = useState<string | undefined>(routine?.parqueId ?? params.parque);
-  const [explore, setExplore] = useState(!!routine?.explorar);
-  const [name, setName] = useState(routine?.name ?? '');
+  const [tipo, setTipo] = useState(preset?.tipo ?? (pet.species === 'gato' ? 'juego' : 'paseo'));
+  const [time, setTime] = useState(preset ? String(preset.minutes ?? 0) : '30');
+  const [km, setKm] = useState(preset ? String(preset.km ?? 0) : '0');
+  const [park, setPark] = useState<string | undefined>(preset?.parqueId ?? params.parque);
+  const [explore, setExplore] = useState(!!preset?.explorar);
+  const [name, setName] = useState(() => (params.meta ? ((data.routines ?? []).find((r) => r.id === params.meta)?.name ?? '') : ''));
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
@@ -58,14 +58,14 @@ export default function PaseoEnCurso() {
     if (explore) goal.explorar = true;
     return goal;
   };
-  const known = routines.find((r) => sameGoal(r, goalNow()));
+  const key = goalKey(goalNow());
+  const times = walkGoals(data).find((g) => g.key === key)?.started ?? 0;
+  const savedName = (data.routines ?? []).find((r) => r.id === key)?.name;
 
-  // Cada objetivo nuevo queda guardado como paseo recurrente.
   const begin = () => {
     const goal = goalNow();
     const label = name.trim();
-    if (!known) saveRoutine({ ...goal, name: label || goalText(goal, data.parks) });
-    else if (label && label !== known.name) saveRoutine({ ...known, name: label });
+    if (label && label !== savedName) saveRoutine({ ...goal, id: key, name: label });
     startWalk(goal);
   };
 
@@ -135,9 +135,11 @@ export default function PaseoEnCurso() {
         <T.Black>Conquista: ¿en qué parque?</T.Black>
         <ParkPicker value={park} onChange={setPark} />
         <Check label="Exploración: visitar un parque nuevo" detail={`+${NEW_PARK_XP} XP al registrar un parque donde no hayan ido`} on={explore} onPress={() => setExplore(!explore)} />
-        <Input field={{ key: 'nombre', label: 'Nombre (opcional)', placeholder: known?.name ?? 'Paseo de la tarde' }} value={name} onChange={setName} />
+        <Input field={{ key: 'nombre', label: 'Nombre (opcional)', placeholder: savedName ?? 'Paseo de la tarde' }} value={name} onChange={setName} />
         <T.Muted style={{ fontSize: 12 }}>
-          {known ? `Ya está en tus recurrentes como "${known.name}".` : 'Este objetivo quedará guardado en tus paseos recurrentes.'}
+          {times >= RECURRENT_TIMES
+            ? `Ya está en tus paseos recurrentes (lo hicieron ${times} veces).`
+            : `Si lo hacen ${RECURRENT_TIMES} veces con este mismo objetivo, quedará en tus paseos recurrentes. Llevan ${times}.`}
         </T.Muted>
         <Button label={`Empezar ${word.toLowerCase()} con ${pet.name}`} kind="solid" onPress={begin} />
         <Button label="Volver" kind="secondary" onPress={back} />
@@ -146,8 +148,8 @@ export default function PaseoEnCurso() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.grass }}>
-      <GameMap />
+    <View style={{ flex: 1, backgroundColor: '#BFEBC5' }}>
+      <BarrioMap interactive={false} initialWidth={360} focusY={0.21} />
       <View style={s.petSpot}>
         <PetDrawing species={pet.species} mood={mood(computeStats(data, now))} size={120} />
       </View>
@@ -205,7 +207,7 @@ function Summary({ id }: { id: string }) {
 }
 
 const s = StyleSheet.create({
-  petSpot: { position: 'absolute', left: '50%', top: '14%', marginLeft: -60 },
+  petSpot: { position: 'absolute', left: '50%', top: '21%', marginLeft: -60, marginTop: -60 },
   panel: {
     position: 'absolute',
     left: 0,

@@ -1,14 +1,14 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { BackHeader, Button, Card, EntryRow, T } from '../components/ui';
-import { MISSION_XP, activityWord, minutesOn, missionGoal, startOfDay, walkXp } from '../lib/game';
+import { BackHeader, Button, Card, EntryRow, T, when } from '../components/ui';
+import { MISSION_XP, activityWord, goalText, minutesOn, missionGoal, startOfDay, walkGoals, walkXp } from '../lib/game';
 import { useStore } from '../lib/store';
 import { colors, fonts } from '../lib/theme';
 
 // Resumen del paseo que acaba de terminar, o de los paseos recientes.
 export default function Resumen() {
-  const { min, id } = useLocalSearchParams<{ min?: string; id?: string }>();
+  const { min, id, elegir } = useLocalSearchParams<{ min?: string; id?: string; elegir?: string }>();
   const { data } = useStore();
   const pet = data.pet!;
   const word = activityWord(pet.species);
@@ -16,6 +16,7 @@ export default function Resumen() {
   const goal = missionGoal(pet.species);
   const today = minutesOn(data.entries, startOfDay(Date.now()));
   const walks = data.entries.filter((e) => e.kind === 'paseo');
+  const past = elegir ? walkGoals(data).slice(0, 8) : [];
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -25,6 +26,31 @@ export default function Resumen() {
         onBack={() => router.dismissTo('/')}
       />
       <ScrollView contentContainerStyle={s.page}>
+        {elegir ? (
+          <Card style={{ gap: 6, borderWidth: 2, borderColor: colors.blueOutline }}>
+            <T.Black>Elige un {word.toLowerCase()} ya registrado</T.Black>
+            <T.Muted style={{ fontSize: 13 }}>Se usa su mismo objetivo: tipo, tiempo, distancia y parque.</T.Muted>
+            {past.length === 0 ? <T.Muted>Todavía no hay {word === 'Juego' ? 'juegos' : 'paseos'} registrados.</T.Muted> : null}
+            {past.map((g) => (
+              <Pressable
+                key={g.key}
+                accessibilityLabel={`Repetir ${g.name}`}
+                onPress={() => router.replace({ pathname: '/paseo', params: { meta: g.key } })}
+                style={s.pick}
+              >
+                <View style={{ flex: 1, gap: 2 }}>
+                  <T.Black>{g.name}</T.Black>
+                  <T.Muted style={{ fontSize: 13 }}>
+                    {g.name !== goalText(g.goal, data.parks) ? `${goalText(g.goal, data.parks)} · ` : ''}
+                    {g.count} {g.count === 1 ? 'vez' : 'veces'} · último {when(g.last)}
+                  </T.Muted>
+                </View>
+                <T.Black style={{ fontSize: 14, color: colors.accent }}>Repetir</T.Black>
+              </Pressable>
+            ))}
+            <Button label={`Mejor uno nuevo`} kind="secondary" onPress={() => router.replace('/paseo')} />
+          </Card>
+        ) : null}
         {minutes !== null && (
           <Card style={s.result}>
             <View style={s.stat}>
@@ -66,6 +92,7 @@ export default function Resumen() {
 const s = StyleSheet.create({
   page: { paddingHorizontal: 16, paddingBottom: 40, gap: 12, width: '100%', maxWidth: 560, alignSelf: 'center' },
   result: { flexDirection: 'row', justifyContent: 'space-around' },
+  pick: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.grey },
   stat: { alignItems: 'center' },
   big: { fontFamily: fonts.display, fontWeight: '700', fontSize: 34, color: colors.text },
 });

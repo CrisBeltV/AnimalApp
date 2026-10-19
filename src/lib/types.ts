@@ -118,11 +118,14 @@ export type WalkGoal = {
 };
 
 // Paseo recurrente: un objetivo guardado para repetirlo con un toque.
-export type WalkRoutine = WalkGoal & { id: string; name: string };
+// id = goalKey del objetivo; hidden = el dueño lo quitó de la lista.
+export type WalkRoutine = WalkGoal & { id: string; name: string; hidden?: boolean };
 
 // Avisos diarios: horarios de comida y recordatorio de paseo.
 export type Settings = {
   mealTimes: string[]; // "07:00"
+  mealNames?: Record<string, string>; // nombre de cada horario: "Desayuno"
+  mealOff?: string[]; // horarios guardados con el aviso apagado
   walkTime?: string; // "18:00"
   notifIds: Record<string, string>; // aviso agendado por horario
 };
