@@ -88,6 +88,8 @@ export function BarrioMap({
   interactive = true,
   controlsBottom = 16,
   focusY = 0.5,
+  center = { x: 0, y: 0 },
+  overlay,
   style,
 }: {
   markers?: Marker[];
@@ -95,10 +97,12 @@ export function BarrioMap({
   interactive?: boolean;
   controlsBottom?: number;
   focusY?: number; // a qué altura de la pantalla (0 arriba, 1 abajo) queda el centro del mapa
+  center?: { x: number; y: number }; // dónde arranca el mapa (metros); ◎ siempre vuelve a tu ubicación
+  overlay?: ReactNode; // dibujo extra en metros, encima del mapa (por ejemplo el radio de 2 km)
   style?: StyleProp<ViewStyle>;
 }) {
   const [size, setSize] = useState({ w: 390, h: 600 });
-  const [cam, setCam] = useState({ x: 0, y: 0, w: initialWidth });
+  const [cam, setCam] = useState({ x: center.x, y: center.y, w: initialWidth });
   const camRef = useRef(cam);
   camRef.current = cam;
   const sizeRef = useRef(size);
@@ -163,6 +167,7 @@ export function BarrioMap({
     <View style={[StyleSheet.absoluteFill, style]} onLayout={onLayout} {...(interactive ? responder.panHandlers : {})}>
       <Svg style={StyleSheet.absoluteFill} viewBox={`${cam.x - cam.w / 2} ${cam.y - viewH * focusY} ${cam.w} ${viewH}`} preserveAspectRatio="xMidYMid slice">
         <Art />
+        {overlay}
       </Svg>
 
       <View pointerEvents="none" style={StyleSheet.absoluteFill}>

@@ -6,6 +6,7 @@ import { AccountButton } from '../../components/AccountButton';
 import { Icon } from '../../components/Icon';
 import { Button, T, soon } from '../../components/ui';
 import { ACHIEVEMENTS, weekMinutes } from '../../lib/game';
+import { RADIUS, REUNIONS_YEAR, ago, posted, kindOf, meters } from '../../lib/reports';
 import { useStore } from '../../lib/store';
 import { colors, fonts } from '../../lib/theme';
 import { useNow } from '../../lib/useNow';
@@ -16,7 +17,8 @@ export default function Comunidad() {
   const now = useNow();
   const pet = data.pet!;
   const reports = allReports(now);
-  const lost = reports.filter((r) => r.kind === 'perdida');
+  const near = reports.filter((r) => !r.closed && meters(r) <= RADIUS).sort((a, b) => posted(b) - posted(a));
+  const latest = near.find((r) => kindOf(r) === 'perdida') ?? near[0];
   const won = ACHIEVEMENTS.filter((a) => data.unlocked.includes(a.id)).length;
   const myWeek = Math.round(weekMinutes(data.entries, now).reduce((a, b) => a + b, 0));
 
@@ -37,25 +39,40 @@ export default function Comunidad() {
         <AccountButton />
       </View>
 
-      <Pressable onPress={() => router.push('/perdidas')} style={s.alertCard}>
-        <View style={s.alertIcon}>
-          <Icon name="alerta" size={20} color="#FFFFFF" strokeWidth={2.4} />
+      <View style={s.alertCard}>
+        <Pressable accessibilityLabel="Mascotas perdidas" onPress={() => router.push('/perdidas')} style={s.alertHead}>
+          <View style={s.alertIcon}>
+            <Icon name="alerta" size={20} color="#FFFFFF" strokeWidth={2.4} />
+            {near.length ? (
+              <View style={s.alertBadge}>
+                <Text style={s.alertBadgeText}>{near.length}</Text>
+              </View>
+            ) : null}
+          </View>
+          <View style={{ flex: 1 }}>
+            <T.Black>Mascotas perdidas</T.Black>
+            <T.Muted style={{ fontSize: 13 }}>
+              {near.length === 0
+                ? 'Sin reportes cerca por ahora'
+                : `${near.length} ${near.length === 1 ? 'reporte' : 'reportes'} a 2 km${latest ? ` · ${latest.petName}, ${ago(posted(latest), now).toLowerCase()}` : ''}`}
+            </T.Muted>
+          </View>
+          <Icon name="chevronRight" size={20} color={colors.textMuted} strokeWidth={2.2} />
+        </Pressable>
+        <View style={s.row}>
+          <Button label="Crear reporte" kind="lost" style={{ flex: 1 }} onPress={() => router.push('/nuevo-reporte')} />
+          <Button label="Ver mapa" style={{ flex: 1 }} onPress={() => router.push({ pathname: '/perdidas', params: { vista: 'mapa' } })} />
         </View>
-        <View style={{ flex: 1 }}>
-          <T.Black>Mascotas perdidas y encontradas</T.Black>
-          <T.Muted>
-            {reports.length === 0
-              ? 'Sin alertas cerca por ahora'
-              : `${reports.length} ${reports.length === 1 ? 'alerta' : 'alertas'}${lost[0] ? ` · ${lost[0].petName} se perdió` : ''}`}
-          </T.Muted>
-        </View>
-        <Icon name="chevronRight" size={20} color={colors.textMuted} strokeWidth={2.2} />
-      </Pressable>
-
-      <View style={s.row}>
-        <Button label="Reportar perdida" kind="lost" style={{ flex: 1 }} onPress={() => router.push({ pathname: '/reportar', params: { tipo: 'perdida' } })} />
-        <Button label="Encontré una" kind="found" style={{ flex: 1 }} onPress={() => router.push({ pathname: '/reportar', params: { tipo: 'encontrada' } })} />
       </View>
+
+      <Pressable accessibilityLabel="Reencuentros" onPress={() => router.push('/reencuentros')} style={s.reunions}>
+        <Text style={{ fontSize: 26 }}>🏡</Text>
+        <View style={{ flex: 1 }}>
+          <T.Black style={{ color: colors.foundText }}>{REUNIONS_YEAR + data.reports.filter((r) => r.closed).length} reencuentros este año</T.Black>
+          <T.Muted style={{ fontSize: 13 }}>Historias, aliados y preguntas</T.Muted>
+        </View>
+        <Icon name="chevronRight" size={20} color={colors.foundText} strokeWidth={2.2} />
+      </Pressable>
 
       <View style={s.row}>
         <Pressable
@@ -128,6 +145,29 @@ const s = StyleSheet.create({
     backgroundColor: colors.card,
     borderWidth: 2,
     borderColor: colors.lost,
+    borderRadius: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    gap: 12,
+  },
+  alertHead: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  alertBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -8,
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    paddingHorizontal: 5,
+    backgroundColor: colors.text,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  alertBadgeText: { color: '#FFFFFF', fontSize: 11, fontFamily: fonts.bodyBlack, fontWeight: '800' },
+  reunions: {
+    backgroundColor: colors.foundSoft,
     borderRadius: 20,
     paddingVertical: 12,
     paddingHorizontal: 14,

@@ -24,7 +24,8 @@ Sigue el diseño de la maqueta (Ventana Jim): paleta azul claro, gris y lila, le
 - **Fechas**: cada fecha tiene el botón 📅 al inicio del campo para elegir día, mes y año; queda escrita como DD/MM/AAAA.
 - **Barra de abajo**: los tres botones son iguales; el elegido crece con fondo azul e ícono blanco.
 - **Pendiente**: leer el texto de las fotos automáticamente, completar datos generales desde internet citando la fuente, elegir parques en el mapa con GPS y aliados registrados (necesitan servicios en la nube).
-- **Comunidad**: perdidas y encontradas (reportar perdida, encontré una, lista con mapa), tabla del barrio y desafíos.
+- **Comunidad**: tarjeta **Mascotas perdidas** (reportes a 2 km, "Crear reporte" y "Ver mapa"), **Reencuentros** (familias reunidas, historias, aliados del barrio y preguntas frecuentes), tabla del barrio y desafíos.
+- **Mascotas perdidas**: pestañas Reportes y Mapa, buscador y 6 filtros con contador (Todos, Perdidos, Vistos, Emergencias, Adopción, Hogar temporal). Cada tarjeta tiene quién publica, tipo, fotos, apoyos ❤, comentarios y compartir; "Ampliar a 5 km". En el mapa, pines del color de cada tipo, el radio de 2 km y una hoja con "Lo vi" y "Ver reporte". El detalle muestra fotos, rasgos, "Por dónde lo han visto" (mapa y línea de tiempo), comentarios, "Lo vi aquí" (suma un avistamiento) y el perfil del vecino (verificado, cifras, insignia, reportes activos y cerrados, denunciar; nunca su número ni dirección). "Crear un reporte" ofrece 5 tipos: se perdió mi mascota, vi una mascota suelta, emergencia, dar en adopción y hogar temporal. "¿Cuándo?" se elige en dos pasos: día (sin días futuros, Hoy/Ayer/Anteayer) y hora (Ahora, Hace 1 h, Hace 3 h, o "No sé la hora exacta"). Los 6 reportes de la maqueta salen como ejemplo; tus reportes, apoyos y comentarios se guardan en el teléfono.
 - **Tu cuenta** (botón con tu inicial): perfil, ajustes, nivel y XP, insignias.
 - **Juego**: XP, 15 niveles, misión diaria, 9 insignias, y el ánimo de la mascota baja si pasan días sin cuidarla.
 
@@ -60,4 +61,5 @@ npm run build:web # versión web en dist/
 - `src/lib/auth.tsx`, `src/lib/cloud.ts`, `src/lib/supabase.ts` cuenta del dueño y conexión con la nube.
 - `supabase/schema.sql` tablas de la nube y sus reglas de acceso.
 - `src/lib/theme.ts` colores de la maqueta.
+- `src/lib/reports.ts`, `src/lib/samples.ts` y `src/components/Reports.tsx` reportes de mascotas perdidas: tipos, colores, distancia y ejemplos.
 - `src/lib/barrio.ts` y `src/components/BarrioMap.tsx` mapa dibujado del barrio (calles, carreras, barrios y lugares; aproximado, hasta tener GPS).

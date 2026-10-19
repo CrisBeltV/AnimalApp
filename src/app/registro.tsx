@@ -175,10 +175,10 @@ export default function Registro() {
             </View>
             <T.Muted style={{ fontSize: 13 }}>Avisa a 2 km</T.Muted>
           </Pressable>
-          <Pressable onPress={() => router.replace({ pathname: '/reportar', params: { tipo: 'encontrada' } })} style={[s.urgent, { borderColor: colors.found }]}>
+          <Pressable onPress={() => router.replace({ pathname: '/reportar', params: { tipo: 'visto' } })} style={[s.urgent, { borderColor: colors.found }]}>
             <View style={s.urgentTitle}>
               <View style={[s.dot, { backgroundColor: colors.found }]} />
-              <T.Black style={{ color: colors.foundText }}>Encontré una</T.Black>
+              <T.Black style={{ color: colors.foundText }}>Vi una suelta</T.Black>
             </View>
             <T.Muted style={{ fontSize: 13 }}>Toma una foto</T.Muted>
           </Pressable>

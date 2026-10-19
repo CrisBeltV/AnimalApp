@@ -1,146 +1,251 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, Rect } from 'react-native-svg';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Circle } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { PetDrawing } from '../components/PetDrawing';
-import { BackHeader, Button, T, when } from '../components/ui';
+import { BarrioMap } from '../components/BarrioMap';
+import { FilterChips, KindBadge, ReportCard, ReportPhoto, ReportPin } from '../components/Reports';
+import type { Filter } from '../components/Reports';
+import { BackHeader, Button, T } from '../components/ui';
+import { RADIUS, WIDE_RADIUS, ago, posted, distanceText, kindOf, meters, spot, title } from '../lib/reports';
 import { useStore } from '../lib/store';
-import { colors, fonts } from '../lib/theme';
-import type { ReportKind } from '../lib/types';
+import { colors, fonts, shadow, softShadow } from '../lib/theme';
+import type { Report } from '../lib/types';
 import { useNow } from '../lib/useNow';
 
-type Tab = 'todas' | ReportKind;
+function matches(r: Report, q: string) {
+  if (!q) return true;
+  const text = [r.title, r.petName, r.description, r.note, r.place, r.barrio, r.petInfo, ...(r.traits ?? [])].join(' ').toLowerCase();
+  return q
+    .toLowerCase()
+    .split(/\s+/)
+    .every((w) => text.includes(w));
+}
 
+// Mascotas perdidas: reportes de los vecinos a 2 km, en lista o en el mapa.
 export default function Perdidas() {
+  const params = useLocalSearchParams<{ vista?: string; id?: string }>();
   const { reports, refreshReports } = useStore();
   const insets = useSafeAreaInsets();
   const now = useNow();
-  const [tab, setTab] = useState<Tab>('todas');
-  const all = reports(now);
+  const [view, setView] = useState<'lista' | 'mapa'>(params.vista === 'mapa' ? 'mapa' : 'lista');
+  const [filter, setFilter] = useState<Filter>('todos');
+  const [query, setQuery] = useState('');
+  const [radius, setRadius] = useState(RADIUS);
+  const [selected, setSelected] = useState<string | null>(params.id ?? null);
   useEffect(refreshReports, [refreshReports]);
-  const lost = all.filter((r) => r.kind === 'perdida');
-  const found = all.filter((r) => r.kind === 'encontrada');
-  const shown = tab === 'todas' ? all : tab === 'perdida' ? lost : found;
 
-  const tabs: { id: Tab; label: string }[] = [
-    { id: 'todas', label: `Todas · ${all.length}` },
-    { id: 'perdida', label: `Perdidas · ${lost.length}` },
-    { id: 'encontrada', label: `Encontradas · ${found.length}` },
-  ];
+  const near = reports(now)
+    .filter((r) => !r.closed && meters(r) <= radius)
+    .sort((a, b) => posted(b) - posted(a));
+  const found = near.filter((r) => matches(r, query.trim()));
+  const shown = found.filter((r) => filter === 'todos' || kindOf(r) === filter);
+  const km = radius / 1000;
+  const current = shown.find((r) => r.id === selected) ?? null;
+  const start = params.id ? near.find((r) => r.id === params.id) : undefined;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <BackHeader title="Perdidas y encontradas" subtitle="Alertas a 2 km de ti" />
-      <ScrollView contentContainerStyle={s.page}>
-        <View style={s.map}>
-          <Svg width="100%" height="100%" viewBox="0 0 358 176" preserveAspectRatio="xMidYMid slice">
-            <Rect width={358} height={176} fill={colors.grass} />
-            {[10, 140, 260].map((x) => (
-              <Rect key={`a${x}`} x={x} y={10} width={x === 260 ? 88 : x === 140 ? 90 : 100} height={60} rx={12} fill={colors.block} />
-            ))}
-            {[10, 140, 260].map((x) => (
-              <Rect key={`b${x}`} x={x} y={100} width={x === 260 ? 88 : x === 140 ? 90 : 100} height={66} rx={12} fill={colors.block} />
-            ))}
-            <Rect x={110} y={0} width={30} height={176} fill={colors.road} />
-            <Rect x={230} y={0} width={30} height={176} fill={colors.road} />
-            <Rect x={0} y={70} width={358} height={30} fill={colors.road} />
-            <Circle cx={179} cy={88} r={80} fill={colors.accent} fillOpacity={0.08} stroke={colors.accent} strokeWidth={2} strokeDasharray="6 6" />
-            <Circle cx={179} cy={88} r={9} fill={colors.accent} stroke="#FFFFFF" strokeWidth={4} />
-            <Circle cx={128} cy={52} r={11} fill={colors.lost} stroke="#FFFFFF" strokeWidth={4} />
-            <Circle cx={236} cy={132} r={11} fill={colors.lost} stroke="#FFFFFF" strokeWidth={4} />
-            <Circle cx={238} cy={40} r={11} fill={colors.found} stroke="#FFFFFF" strokeWidth={4} />
-          </Svg>
-          <View style={s.legend}>
-            <View style={[s.dot, { backgroundColor: colors.lost }]} />
-            <T.Black style={{ fontSize: 12 }}>Perdida</T.Black>
-            <View style={[s.dot, { backgroundColor: colors.found, marginLeft: 6 }]} />
-            <T.Black style={{ fontSize: 12 }}>Encontrada · 2 km</T.Black>
-          </View>
-        </View>
-
-        <View accessibilityRole="tablist" style={s.tabs}>
-          {tabs.map((t) => (
-            <Pressable
-              key={t.id}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: tab === t.id }}
-              onPress={() => setTab(t.id)}
-              style={[s.tab, tab === t.id && { backgroundColor: colors.blue }]}
-            >
-              <T.Black style={{ fontSize: 13, color: tab === t.id ? colors.text : colors.textMuted }}>{t.label}</T.Black>
-            </Pressable>
-          ))}
-        </View>
-
-        {shown.map((r) => {
-          const isLost = r.kind === 'perdida';
-          return (
-            <Pressable key={r.id} onPress={() => router.push({ pathname: '/reporte', params: { id: r.id } })} style={s.item}>
-              <View style={[s.thumb, { backgroundColor: isLost ? '#F1E4D6' : colors.foundSoft }]}>
-                <PetDrawing species={r.species} mood="normal" size={54} />
-              </View>
-              <View style={{ flex: 1, gap: 2 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                  <View style={[s.tag, { backgroundColor: isLost ? colors.lostSoft : colors.foundSoft }]}>
-                    <Text style={[s.tagText, { color: isLost ? colors.lostText : colors.foundText }]}>
-                      {isLost ? 'PERDIDA' : 'ENCONTRADA'}
-                    </Text>
-                  </View>
-                  <T.Black>{r.petName}</T.Black>
-                  {r.example ? <T.Muted style={{ fontSize: 12 }}>ejemplo</T.Muted> : null}
-                </View>
-                <T.Body style={{ fontSize: 14 }}>
-                  {r.description} · {when(r.at)}
-                </T.Body>
-                <T.Muted style={{ fontSize: 13 }}>
-                  {isLost ? '' : 'Encontrada en '}
-                  {r.place}
-                  {r.distance ? ` · a ${r.distance}` : r.mine === false ? ' · de un vecino' : ' · tu reporte'}
-                </T.Muted>
-              </View>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
-      <View style={[s.actions, { paddingBottom: insets.bottom + 16 }]}>
-        <Button label="Se perdió mi mascota" kind="lost" style={{ flex: 1 }} onPress={() => router.push({ pathname: '/reportar', params: { tipo: 'perdida' } })} />
-        <Button label="Encontré una" kind="found" style={{ flex: 1 }} onPress={() => router.push({ pathname: '/reportar', params: { tipo: 'encontrada' } })} />
+      <BackHeader title="Mascotas perdidas" subtitle={`${near.length} ${near.length === 1 ? 'reporte' : 'reportes'} a ${km} km · en vivo`} />
+      <View style={s.segment} accessibilityRole="tablist">
+        {(['lista', 'mapa'] as const).map((v) => (
+          <Pressable
+            key={v}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: view === v }}
+            onPress={() => setView(v)}
+            style={[s.segBtn, view === v && s.segOn]}
+          >
+            <T.Black style={{ fontSize: 15, color: view === v ? '#FFFFFF' : colors.text }}>{v === 'lista' ? 'Reportes' : 'Mapa'}</T.Black>
+          </Pressable>
+        ))}
       </View>
+
+      {view === 'lista' ? (
+        <>
+          <View style={s.searchWrap}>
+            <Text style={s.searchIcon}>⌕</Text>
+            <TextInput
+              value={query}
+              onChangeText={setQuery}
+              placeholder="Busca por descripción, raza o barrio"
+              placeholderTextColor={colors.textMuted}
+              style={s.search}
+              accessibilityLabel="Buscar reportes"
+            />
+          </View>
+          <View>
+            <FilterChips value={filter} onChange={setFilter} list={found} />
+          </View>
+          <ScrollView contentContainerStyle={[s.list, { paddingBottom: insets.bottom + 110 }]}>
+            {shown.map((r) => (
+              <ReportCard key={r.id} report={r} now={now} />
+            ))}
+            {shown.length === 0 ? (
+              <T.Muted style={{ textAlign: 'center', paddingVertical: 20 }}>
+                {query ? 'Ningún reporte coincide con tu búsqueda.' : 'No hay reportes de este tipo cerca.'}
+              </T.Muted>
+            ) : null}
+            <View style={s.footer}>
+              <T.Muted style={{ textAlign: 'center' }}>Eso es todo a {km} km.</T.Muted>
+              {radius < WIDE_RADIUS ? (
+                <Pressable onPress={() => setRadius(WIDE_RADIUS)} style={s.wider}>
+                  <T.Black style={{ color: colors.accent }}>Ampliar a {WIDE_RADIUS / 1000} km</T.Black>
+                </Pressable>
+              ) : null}
+            </View>
+          </ScrollView>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push('/nuevo-reporte')}
+            style={[s.fab, shadow, { bottom: insets.bottom + 20 }]}
+          >
+            <Text style={s.fabPlus}>+</Text>
+            <Text style={s.fabText}>Crear un reporte</Text>
+          </Pressable>
+        </>
+      ) : (
+        <View style={{ flex: 1 }}>
+          <BarrioMap
+            initialWidth={start ? 1400 : 3400}
+            center={start ? spot(start) : undefined}
+            controlsBottom={current ? 250 + insets.bottom : 90 + insets.bottom}
+            overlay={
+              <Circle cx={0} cy={0} r={radius} fill={colors.accent} fillOpacity={0.06} stroke={colors.accent} strokeWidth={10} strokeDasharray="40 30" />
+            }
+            markers={[
+              {
+                id: 'tu',
+                x: 0,
+                y: 0,
+                node: (
+                  <View style={{ alignItems: 'center' }}>
+                    <View style={s.me} />
+                    <View style={[s.meLabel, softShadow]}>
+                      <Text style={s.meText}>Tú</Text>
+                    </View>
+                  </View>
+                ),
+              },
+              ...shown.map((r) => ({
+                id: r.id,
+                ...spot(r),
+                node: <ReportPin report={r} selected={r.id === selected} onPress={() => setSelected(r.id)} />,
+              })),
+            ]}
+          />
+          <View style={s.mapFilters}>
+            <FilterChips value={filter} onChange={setFilter} list={near} />
+          </View>
+          {current ? (
+            <View style={[s.sheet, shadow, { paddingBottom: insets.bottom + 14 }]}>
+              <Pressable accessibilityLabel="Cerrar reporte" onPress={() => setSelected(null)} style={s.handleArea}>
+                <View style={s.handle} />
+              </Pressable>
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <View style={{ width: 86 }}>
+                  <ReportPhoto report={current} height={86} size={70} />
+                </View>
+                <View style={{ flex: 1, gap: 4 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <KindBadge report={current} small />
+                    <T.Muted style={{ fontSize: 12 }}>{ago(posted(current), now).toLowerCase()}</T.Muted>
+                  </View>
+                  <T.Black style={{ fontSize: 17 }} numberOfLines={1}>
+                    {title(current)}
+                  </T.Black>
+                  <T.Muted style={{ fontSize: 13 }} numberOfLines={2}>
+                    {current.place} · a {distanceText(meters(current))} de ti
+                  </T.Muted>
+                </View>
+              </View>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                {kindOf(current) === 'perdida' ? (
+                  <Button
+                    label="Lo vi"
+                    kind="found"
+                    style={{ flex: 1 }}
+                    onPress={() => router.push({ pathname: '/reportar', params: { tipo: 'visto', para: current.id } })}
+                  />
+                ) : null}
+                <Button label="Ver reporte" kind="solid" style={{ flex: 1.3 }} onPress={() => router.push({ pathname: '/reporte', params: { id: current.id } })} />
+                <Pressable accessibilityLabel="Crear un reporte" onPress={() => router.push('/nuevo-reporte')} style={s.plus}>
+                  <Text style={s.plusText}>+</Text>
+                </Pressable>
+              </View>
+            </View>
+          ) : (
+            <View pointerEvents="none" style={[s.hint, softShadow, { bottom: insets.bottom + 24 }]}>
+              <T.Black style={{ fontSize: 13 }}>Toca un pin para ver el reporte · {shown.length} en la zona</T.Black>
+            </View>
+          )}
+        </View>
+      )}
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  page: { paddingHorizontal: 16, paddingBottom: 24, gap: 12, width: '100%', maxWidth: 560, alignSelf: 'center' },
-  map: { height: 176, borderRadius: 22, overflow: 'hidden', backgroundColor: colors.grass },
-  legend: {
-    position: 'absolute',
-    left: 10,
-    bottom: 10,
-    height: 28,
-    paddingHorizontal: 10,
-    borderRadius: 14,
-    backgroundColor: '#FFFFFF',
+  segment: {
+    flexDirection: 'row',
+    marginHorizontal: 16,
+    marginBottom: 10,
+    padding: 4,
+    borderRadius: 24,
+    backgroundColor: colors.card,
+  },
+  segBtn: { flex: 1, height: 42, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  segOn: { backgroundColor: colors.accent },
+  searchWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    marginHorizontal: 16,
+    marginBottom: 10,
+    paddingHorizontal: 14,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.card,
+    borderWidth: 1.5,
+    borderColor: colors.grey,
+    gap: 8,
   },
-  dot: { width: 10, height: 10, borderRadius: 5 },
-  tabs: { flexDirection: 'row', backgroundColor: colors.card, borderRadius: 22, padding: 4 },
-  tab: { flex: 1, minHeight: 44, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  item: { backgroundColor: colors.card, borderRadius: 20, padding: 10, flexDirection: 'row', gap: 12 },
-  thumb: { width: 64, height: 64, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  tag: { height: 22, paddingHorizontal: 8, borderRadius: 11, justifyContent: 'center' },
-  tagText: { fontSize: 11, fontFamily: fonts.bodyBlack, fontWeight: '800' },
-  actions: {
-    flexDirection: 'row',
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    width: '100%',
-    maxWidth: 560,
+  searchIcon: { fontSize: 20, color: colors.textMuted },
+  search: { flex: 1, height: 46, fontSize: 15, fontFamily: fonts.body, color: colors.body, ...({ outlineStyle: 'none' } as object) },
+  list: { paddingHorizontal: 16, paddingTop: 12, gap: 14, width: '100%', maxWidth: 560, alignSelf: 'center' },
+  footer: { alignItems: 'center', gap: 8, paddingVertical: 10 },
+  wider: { paddingHorizontal: 18, height: 42, borderRadius: 21, borderWidth: 2, borderColor: colors.blueOutline, backgroundColor: colors.blue, justifyContent: 'center' },
+  fab: {
+    position: 'absolute',
     alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    height: 56,
+    paddingHorizontal: 22,
+    borderRadius: 28,
+    backgroundColor: colors.accent,
   },
+  fabPlus: { color: '#FFFFFF', fontSize: 26, fontWeight: '700', lineHeight: 28 },
+  fabText: { color: '#FFFFFF', fontSize: 16, fontFamily: fonts.bodyBlack, fontWeight: '800' },
+  mapFilters: { position: 'absolute', top: 8, left: 0, right: 0 },
+  me: { width: 22, height: 22, borderRadius: 11, backgroundColor: colors.accent, borderWidth: 4, borderColor: '#FFFFFF' },
+  meLabel: { marginTop: 4, paddingHorizontal: 8, height: 20, borderRadius: 10, backgroundColor: '#FFFFFF', justifyContent: 'center' },
+  meText: { fontSize: 11, fontFamily: fonts.bodyBlack, fontWeight: '800', color: colors.accent },
+  sheet: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 26,
+    borderTopRightRadius: 26,
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  handleArea: { alignItems: 'center', paddingTop: 8, paddingBottom: 2 },
+  handle: { width: 44, height: 5, borderRadius: 3, backgroundColor: colors.grey },
+  plus: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.blue, borderWidth: 2, borderColor: colors.blueOutline, alignItems: 'center', justifyContent: 'center' },
+  plusText: { fontSize: 26, fontWeight: '700', color: colors.accent, lineHeight: 28 },
+  hint: { position: 'absolute', alignSelf: 'center', paddingHorizontal: 14, height: 34, borderRadius: 17, backgroundColor: '#FFFFFF', justifyContent: 'center' },
 });

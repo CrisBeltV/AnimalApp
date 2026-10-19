@@ -64,21 +64,66 @@ export type Vet = {
   phone?: string;
 };
 
-export type ReportKind = 'perdida' | 'encontrada';
+// Tipos de reporte de la comunidad. 'encontrada' es el nombre viejo de 'visto'
+// (reportes guardados antes de la v9); se muestra igual que 'visto'.
+export type ReportKind = 'perdida' | 'visto' | 'emergencia' | 'adopcion' | 'hogar' | 'encontrada';
 
-// Reporte de mascota perdida o encontrada. Con cuenta se publica en la nube
-// y lo ven los demás dueños; sin cuenta queda solo en el teléfono.
+// Un vecino vio la mascota del reporte: dónde y cuándo.
+export type Sighting = {
+  at: number;
+  place: string;
+  by: string;
+  note?: string;
+  photo?: boolean;
+  x?: number; // lugar aproximado en el mapa del barrio (metros)
+  y?: number;
+};
+
+export type ReportComment = { id: string; at: number; by: string; text: string; mine?: boolean };
+
+// Datos de una mascota en adopción o que busca hogar temporal.
+export type AdoptionInfo = {
+  age?: string;
+  size?: 'pequeno' | 'mediano' | 'grande';
+  vacunada?: boolean;
+  esterilizada?: boolean;
+  desparasitada?: boolean;
+  time?: string; // hogar temporal: por cuánto tiempo
+};
+
+// Reporte de la comunidad: mascota perdida, vista suelta, emergencia, adopción u hogar temporal.
+// Con cuenta se publica en la nube; sin cuenta (y mientras la nube está en pausa) queda en el teléfono.
 export type Report = {
   id: string;
   kind: ReportKind;
-  at: number;
+  at: number; // cuándo pasó (se perdió, se vio, la emergencia) o cuándo se publicó
+  dayOnly?: boolean; // no se sabe la hora exacta: se muestra solo el día
+  postedAt?: number; // cuándo se publicó (si es distinto de at)
   petName: string;
+  title?: string; // título de la tarjeta: "Rocky · criollo café"
   species: Species;
+  female?: boolean;
   description: string;
   place: string;
+  barrio?: string;
   note?: string;
-  withMe?: boolean; // encontrada: la tengo conmigo
-  distance?: string; // solo en los ejemplos
+  withMe?: boolean; // visto o emergencia: la tengo conmigo
+  by?: string; // nombre de quien publica (nunca su número ni su dirección)
+  petInfo?: string; // "Perro criollo · macho · 3 años · mediano"
+  traits?: string[];
+  photos?: string[];
+  photoCount?: number; // ejemplos: cuántas fotos tiene
+  apoyos?: number;
+  commentCount?: number;
+  comments?: ReportComment[];
+  sightings?: Sighting[];
+  views?: number; // vecinos que lo vieron
+  situations?: string[]; // emergencia: herido, atropellado…
+  adoption?: AdoptionInfo;
+  x?: number; // lugar aproximado en el mapa del barrio (metros desde tu ubicación)
+  y?: number;
+  closed?: boolean; // reencontrado o resuelto
+  distance?: string; // solo en los ejemplos viejos
   example?: boolean;
   cloudId?: string; // id en la nube, si se publicó
   mine?: boolean; // false: reporte de otro dueño
@@ -138,6 +183,9 @@ export type AppData = {
   activeWalkStart: number | null;
   walkGoal?: WalkGoal; // objetivo del paseo en curso
   routines?: WalkRoutine[]; // paseos y entrenamientos recurrentes
+  supported?: string[]; // reportes a los que diste apoyo ❤
+  // Comentarios y avistamientos que escribiste en reportes de otros (también en los de ejemplo).
+  reportExtras?: Record<string, { comments?: ReportComment[]; sightings?: Sighting[] }>;
   unlocked: string[]; // ids de logros ya ganados
   reminders: Reminder[];
   vets: Vet[];

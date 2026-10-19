@@ -20,13 +20,14 @@ import {
   waterGoal,
 } from '../../lib/game';
 import { clock } from '../../lib/format';
+import { RADIUS, badge, badgeColors, distanceText, kindOf, meters, spot, title } from '../../lib/reports';
 import { useStore } from '../../lib/store';
 import { colors, fonts, shadow, softShadow } from '../../lib/theme';
 import { useNow } from '../../lib/useNow';
 
 // INICIO = Paseo, el corazón de la app: el barrio como mapa de juego con tu mascota en el centro.
 export default function Inicio() {
-  const { data } = useStore();
+  const { data, reports } = useStore();
   const insets = useSafeAreaInsets();
   const walking = data.activeWalkStart !== null;
   const now = useNow(walking ? 1000 : 30000);
@@ -54,6 +55,7 @@ export default function Inicio() {
     { title: 'Anota sus comidas', value: meals / mealGoal, text: `${Math.min(meals, mealGoal)}/${mealGoal} comidas`, go: '/mascota' as const },
     { title: 'Que tome su agua', value: water / water100, text: `${water}/${water100} ml`, go: '/mascota' as const },
   ];
+  const nearReports = reports(now).filter((r) => !r.closed && !r.mine && meters(r) <= RADIUS);
   const doneCount = list.filter((m) => m.value >= 1).length;
 
   const go = (path: '/paseos' | '/paseo' | '/explorar' | '/parques' | '/mascota') => () => {
@@ -84,38 +86,31 @@ export default function Inicio() {
               </Pressable>
             ),
           },
-          {
-            id: 'perdido', maxWidth: 1800,
-            x: -300,
-            y: -120,
-            node: (
-              <Pressable onPress={() => router.push('/perdidas')} style={s.pin}>
-                <View style={[s.pinLabel, softShadow]}>
-                  <View style={[s.smallDot, { backgroundColor: colors.lost }]} />
-                  <T.Black style={s.pinText}>Perdido · Rocky · 600 m</T.Black>
-                </View>
-                <View style={[s.pinDot, s.lostHalo, { backgroundColor: colors.lost, width: 40, height: 40 }]}>
-                  <Icon name="huella" size={18} color="#FFFFFF" />
-                </View>
-              </Pressable>
-            ),
-          },
-          {
-            id: 'encontrado', maxWidth: 1800,
-            x: 260,
-            y: 330,
-            node: (
-              <Pressable onPress={() => router.push('/perdidas')} style={s.pin}>
-                <View style={[s.pinLabel, softShadow]}>
-                  <View style={[s.smallDot, { backgroundColor: colors.found }]} />
-                  <T.Black style={s.pinText}>Encontrado · 1,1 km</T.Black>
-                </View>
-                <View style={[s.pinDot, { backgroundColor: colors.found, width: 36, height: 36 }]}>
-                  <Icon name="huella" size={16} color="#FFFFFF" />
-                </View>
-              </Pressable>
-            ),
-          },
+          // Reportes de la comunidad a 2 km: los perdidos y las emergencias llevan nombre.
+          ...nearReports.map((r) => {
+            const c = badgeColors(r);
+            const big = kindOf(r) === 'perdida' || kindOf(r) === 'emergencia';
+            return {
+              id: r.id,
+              maxWidth: 1800,
+              ...spot(r),
+              node: (
+                <Pressable accessibilityLabel={`Reporte ${title(r)}`} onPress={() => router.push({ pathname: '/reporte', params: { id: r.id } })} style={s.pin}>
+                  {big ? (
+                    <View style={[s.pinLabel, softShadow]}>
+                      <View style={[s.smallDot, { backgroundColor: c.pin }]} />
+                      <T.Black style={s.pinText}>
+                        {badge(r)[0] + badge(r).slice(1).toLowerCase()} · {r.petName} · {distanceText(meters(r))}
+                      </T.Black>
+                    </View>
+                  ) : null}
+                  <View style={[s.pinDot, kindOf(r) === 'perdida' && s.lostHalo, { backgroundColor: c.pin, width: big ? 40 : 32, height: big ? 40 : 32 }]}>
+                    <Icon name="huella" size={big ? 18 : 14} color="#FFFFFF" />
+                  </View>
+                </Pressable>
+              ),
+            };
+          }),
           {
             id: 'mascota',
             x: 0,

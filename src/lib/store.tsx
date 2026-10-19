@@ -10,7 +10,8 @@ import type { Achievement } from './game';
 import { emptyData } from './types';
 import { cancel } from './notify';
 import { sampleReports } from './samples';
-import type { AppData, Entry, Park, Pet, Provider, Reminder, Report, Settings, Vet, WalkGoal, WalkRoutine } from './types';
+import { posted, spot } from './reports';
+import type { AppData, Entry, Park, Pet, Provider, Reminder, Report, Settings, Sighting, Vet, WalkGoal, WalkRoutine } from './types';
 
 // Los datos viven en el teléfono y, si el dueño entró con su cuenta,
 // también en la nube (Supabase), para no perderlos al cambiar de teléfono.
@@ -35,7 +36,11 @@ type Store = {
   dismissCelebrate: () => void;
   createPet: (ownerName: string, pet: Omit<Pet, 'createdAt'>) => void;
   setOwnerName: (name: string) => void;
-  addReport: (report: Omit<Report, 'id'>) => void;
+  addReport: (report: Omit<Report, 'id'>) => string;
+  toggleSupport: (id: string) => void;
+  addComment: (id: string, text: string) => void;
+  addSighting: (id: string, sighting: Omit<Sighting, 'by'>) => void;
+  closeReport: (id: string) => void;
   addEntry: (entry: NewEntry) => string;
   updateEntry: (id: string, patch: EntryPatch) => void;
   removeEntry: (id: string) => void;
@@ -181,8 +186,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       reports: (now) => {
         const shared = new Set(neighbors.map((r) => r.cloudId));
         const own = data.reports.filter((r) => !r.cloudId || !shared.has(r.cloudId));
-        const real = [...own, ...neighbors].sort((a, b) => b.at - a.at);
-        return enabled && userId ? real : [...real, ...sampleReports(now)];
+        const real = [...own, ...neighbors].sort((a, b) => posted(b) - posted(a));
+        const list = enabled && userId ? real : [...real, ...sampleReports(now)];
+        // Se suman tus apoyos, comentarios y avistamientos guardados en este teléfono.
+        return list.map((r) => {
+          const extra = data.reportExtras?.[r.id];
+          const liked = data.supported?.includes(r.id);
+          if (!extra && !liked) return r;
+          return {
+            ...r,
+            apoyos: (r.apoyos ?? 0) + (liked ? 1 : 0),
+            comments: [...(r.comments ?? []), ...(extra?.comments ?? [])],
+            sightings: [...(r.sightings ?? []), ...(extra?.sightings ?? [])].sort((a, b) => a.at - b.at),
+          };
+        });
       },
       refreshReports,
       clearLocal: () => {
@@ -195,7 +212,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setOwnerName: (ownerName) => change((d) => ({ ...d, ownerName })),
       addReport: (r) => {
         const id = `r-${Date.now()}`;
-        change((d) => ({ ...d, reports: [{ ...r, id, mine: true }, ...d.reports] }));
+        const at = spot({ id, x: r.x, y: r.y });
+        const by = r.by ?? (data.ownerName || 'Tú');
+        change((d) => ({ ...d, reports: [{ ...r, ...at, by, id, postedAt: Date.now(), mine: true }, ...d.reports] }));
         if (userId) {
           publishReport(r)
             .then((cloudId) => {
@@ -205,7 +224,26 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             })
             .catch(() => {});
         }
+        return id;
       },
+      toggleSupport: (id) =>
+        change((d) => {
+          const list = d.supported ?? [];
+          return { ...d, supported: list.includes(id) ? list.filter((x) => x !== id) : [...list, id] };
+        }),
+      addComment: (id, text) =>
+        change((d) => {
+          const extra = d.reportExtras?.[id] ?? {};
+          const comment = { id: `com-${Date.now()}`, at: Date.now(), by: d.ownerName || 'Tú', text, mine: true };
+          return { ...d, reportExtras: { ...d.reportExtras, [id]: { ...extra, comments: [...(extra.comments ?? []), comment] } } };
+        }),
+      addSighting: (id, sighting) =>
+        change((d) => {
+          const extra = d.reportExtras?.[id] ?? {};
+          const seen = { ...sighting, by: d.ownerName ? `${d.ownerName} (tú)` : 'Tú' };
+          return { ...d, reportExtras: { ...d.reportExtras, [id]: { ...extra, sightings: [...(extra.sightings ?? []), seen] } } };
+        }),
+      closeReport: (id) => change((d) => ({ ...d, reports: d.reports.map((r) => (r.id === id ? { ...r, closed: true } : r)) })),
       addEntry,
       updateEntry: (id, patch) =>
         update((d) => ({

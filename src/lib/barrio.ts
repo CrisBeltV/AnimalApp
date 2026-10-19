@@ -148,6 +148,6 @@ export function spotFor(id: string, radius = 600) {
   let h = 0;
   for (const c of id) h = (h * 31 + c.charCodeAt(0)) >>> 0;
   const angle = ((h % 360) * Math.PI) / 180;
-  const dist = 80 + ((h >> 9) % 1000) / 1000 * radius;
+  const dist = 80 + ((h >>> 9) % 1000) / 1000 * radius;
   return { x: Math.cos(angle) * dist, y: Math.sin(angle) * dist };
 }
