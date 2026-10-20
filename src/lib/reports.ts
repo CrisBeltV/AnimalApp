@@ -110,7 +110,7 @@ export function initial(name?: string) {
 }
 
 export const RADIUS = 2000; // metros: los vecinos a 2 km reciben el aviso
-export const WIDE_RADIUS = 5000;
+export const KM_STEPS = [1, 2, 5, 10, 25, 50, 100]; // kilómetros que se pueden elegir en Mascotas perdidas
 
 export const SITUATIONS = [
   { id: 'herido', label: 'Herido' },

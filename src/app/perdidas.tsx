@@ -8,7 +8,7 @@ import { BarrioMap } from '../components/BarrioMap';
 import { FilterChips, KindBadge, ReportCard, ReportPhoto, ReportPin } from '../components/Reports';
 import type { Filter } from '../components/Reports';
 import { BackHeader, Button, T } from '../components/ui';
-import { RADIUS, WIDE_RADIUS, ago, posted, distanceText, kindOf, meters, spot, title } from '../lib/reports';
+import { KM_STEPS, RADIUS, ago, posted, distanceText, kindOf, meters, spot, title } from '../lib/reports';
 import { useStore } from '../lib/store';
 import { colors, fonts, shadow, softShadow } from '../lib/theme';
 import type { Report } from '../lib/types';
@@ -42,6 +42,7 @@ export default function Perdidas() {
   const found = near.filter((r) => matches(r, query.trim()));
   const shown = found.filter((r) => filter === 'todos' || kindOf(r) === filter);
   const km = radius / 1000;
+  const step = Math.max(0, KM_STEPS.indexOf(km));
   const current = shown.find((r) => r.id === selected) ?? null;
   const start = params.id ? near.find((r) => r.id === params.id) : undefined;
 
@@ -60,6 +61,26 @@ export default function Perdidas() {
             <T.Black style={{ fontSize: 15, color: view === v ? '#FFFFFF' : colors.text }}>{v === 'lista' ? 'Reportes' : 'Mapa'}</T.Black>
           </Pressable>
         ))}
+      </View>
+
+      <View style={s.kmRow}>
+        <T.Black style={{ fontSize: 14, color: colors.textMuted }}>Reportes a</T.Black>
+        <View style={s.km}>
+          <Pressable accessibilityLabel="Menos kilómetros" disabled={step === 0} onPress={() => setRadius(KM_STEPS[step - 1] * 1000)} style={[s.kmBtn, step === 0 && { opacity: 0.35 }]}>
+            <Text style={s.kmSign}>−</Text>
+          </Pressable>
+          <Text accessibilityLabel="Distancia" style={s.kmValue}>
+            {km} km
+          </Text>
+          <Pressable
+            accessibilityLabel="Más kilómetros"
+            disabled={step === KM_STEPS.length - 1}
+            onPress={() => setRadius(KM_STEPS[step + 1] * 1000)}
+            style={[s.kmBtn, step === KM_STEPS.length - 1 && { opacity: 0.35 }]}
+          >
+            <Text style={s.kmSign}>+</Text>
+          </Pressable>
+        </View>
       </View>
 
       {view === 'lista' ? (
@@ -89,9 +110,9 @@ export default function Perdidas() {
             ) : null}
             <View style={s.footer}>
               <T.Muted style={{ textAlign: 'center' }}>Eso es todo a {km} km.</T.Muted>
-              {radius < WIDE_RADIUS ? (
-                <Pressable onPress={() => setRadius(WIDE_RADIUS)} style={s.wider}>
-                  <T.Black style={{ color: colors.accent }}>Ampliar a {WIDE_RADIUS / 1000} km</T.Black>
+              {step < KM_STEPS.length - 1 ? (
+                <Pressable onPress={() => setRadius(KM_STEPS[step + 1] * 1000)} style={s.wider}>
+                  <T.Black style={{ color: colors.accent }}>Ampliar a {KM_STEPS[step + 1]} km</T.Black>
                 </Pressable>
               ) : null}
             </View>
@@ -197,6 +218,11 @@ const s = StyleSheet.create({
   },
   segBtn: { flex: 1, height: 42, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
   segOn: { backgroundColor: colors.accent },
+  kmRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: 16, marginBottom: 10 },
+  km: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.card, borderRadius: 22, padding: 3, borderWidth: 1.5, borderColor: colors.blueOutline },
+  kmBtn: { width: 38, height: 38, borderRadius: 19, backgroundColor: colors.blue, alignItems: 'center', justifyContent: 'center' },
+  kmSign: { fontSize: 22, fontWeight: '700', color: colors.accent, lineHeight: 24 },
+  kmValue: { minWidth: 70, textAlign: 'center', fontFamily: fonts.display, fontWeight: '700', fontSize: 18, color: colors.text },
   searchWrap: {
     flexDirection: 'row',
     alignItems: 'center',

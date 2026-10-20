@@ -4,6 +4,7 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AccountButton } from '../../components/AccountButton';
+import { ActivityStats } from '../../components/ActivityStats';
 import { CONDITIONS } from '../../components/BodyGuide';
 import { MealTimes, WalkReminder } from '../../components/DailyTimes';
 import { Icon } from '../../components/Icon';
@@ -15,13 +16,9 @@ import {
   GROOMING,
   groomingTypes,
   MOODS,
-  NEW_PARK_XP,
-  PARK_BADGES,
   foodStatus,
   isIssue,
   lowMoodDays,
-  parkBadge,
-  parkMinutes,
   activityWord,
   computeStats,
   lastWeight,
@@ -215,59 +212,20 @@ function Todo({ data, now, onFilter }: { data: AppData; now: number; onFilter: (
   );
 }
 
-function WeekBars({ values, goal, now }: { values: number[]; goal: number; now: number }) {
-  const max = Math.max(goal, ...values, 1);
-  const todayIdx = dayIndex(now);
-  return (
-    <View style={{ gap: 6 }}>
-      <View style={s.bars}>
-        <View style={[s.goalLine, { bottom: (goal / max) * 100 }]} />
-        {values.map((v, i) => (
-          <View key={i} style={s.barCol}>
-            <View
-              style={{
-                height: Math.max(4, (v / max) * 100),
-                width: '70%',
-                borderRadius: 8,
-                backgroundColor: i === todayIdx ? colors.accent : v >= goal ? colors.blueOutline : colors.grey,
-              }}
-            />
-          </View>
-        ))}
-      </View>
-      <View style={{ flexDirection: 'row' }}>
-        {DAYS.map((d, i) => (
-          <T.Black key={d} style={{ flex: 1, textAlign: 'center', fontSize: 12, color: i === todayIdx ? colors.accent : colors.textMuted }}>
-            {d}
-          </T.Black>
-        ))}
-      </View>
-    </View>
-  );
-}
-
 function Actividad({ data, now }: { data: AppData; now: number }) {
   const pet = data.pet!;
-  const word = activityWord(pet.species);
   const goal = missionGoal(pet.species);
-  const week = weekMinutes(data.entries, now);
-  const today = week[dayIndex(now)];
+  const today = weekMinutes(data.entries, now)[dayIndex(now)];
   const todayWalks = todayEntries(data.entries, now, 'paseo');
   const recent = data.entries.filter((e) => e.kind === 'paseo').slice(0, 3);
   const days = streak(data.entries, now, 'paseo');
-  const parks = data.parks
-    .map((p) => ({ ...p, minutes: Math.round(parkMinutes(data.entries, p.id)) }))
-    .sort((a, b) => b.minutes - a.minutes);
 
+  // Solo datos: lo que se registra en Paseo se acumula aquí.
   return (
     <>
       <Intro
         title="Actividad"
-        text={
-          pet.species === 'gato'
-            ? `${pet.name} necesita ratos de juego todos los días. Cada sesión suma XP y le sube el ánimo.`
-            : `${pet.name} necesita de 40 a 60 minutos de paseo al día. Cada salida suma XP y le sube el ánimo.`
-        }
+        text={`Aquí se acumulan los tiempos de cada ${pet.species === 'gato' ? 'sesión de juego' : 'paseo'}, juego, entrenamiento y guardería de ${pet.name}.`}
       />
       <Card style={{ gap: 6 }}>
         <T.Muted>Hoy</T.Muted>
@@ -276,13 +234,7 @@ function Actividad({ data, now }: { data: AppData; now: number }) {
           {todayWalks.length} {todayWalks.length === 1 ? 'actividad' : 'actividades'}
         </T.Bold>
       </Card>
-      <Card style={{ gap: 10 }}>
-        <View style={s.rowBetween}>
-          <T.Black>Minutos esta semana</T.Black>
-          <T.Muted>Meta {goal} al día</T.Muted>
-        </View>
-        <WeekBars values={week} goal={goal} now={now} />
-      </Card>
+      <ActivityStats data={data} now={now} />
       <Card style={{ gap: 6 }}>
         <T.Black>Últimas actividades</T.Black>
         {recent.length === 0 ? (
@@ -290,32 +242,6 @@ function Actividad({ data, now }: { data: AppData; now: number }) {
         ) : (
           recent.map((e) => <EntryRow key={e.id} entry={e} species={pet.species} />)
         )}
-      </Card>
-      <Card style={{ gap: 8 }}>
-        <View style={s.rowBetween}>
-          <T.Black>Conquista de parques</T.Black>
-          <T.Muted style={{ fontSize: 13 }}>Bronce 60 · Plata 180 · Oro 600 min</T.Muted>
-        </View>
-        {parks.length === 0 ? (
-          <T.Muted style={{ fontSize: 13 }}>Al registrar un paseo, elige el parque. Cada parque nuevo da +{NEW_PARK_XP} XP.</T.Muted>
-        ) : (
-          parks.slice(0, 5).map((p) => {
-            const badge = parkBadge(p.minutes);
-            const nextBadge = [...PARK_BADGES].reverse().find((b) => b.min > p.minutes);
-            return (
-              <Pressable key={p.id} onPress={() => router.push({ pathname: '/parque', params: { id: p.id } })} style={{ gap: 4 }}>
-                <View style={s.rowBetween}>
-                  <T.Black style={{ flex: 1 }}>
-                    {badge?.icon ?? '🌳'} {p.name}
-                  </T.Black>
-                  <T.Muted style={{ fontSize: 13 }}>{p.minutes} min</T.Muted>
-                </View>
-                <Bar value={nextBadge ? (p.minutes / nextBadge.min) * 100 : 100} color={colors.found} />
-              </Pressable>
-            );
-          })
-        )}
-        <Button label="Ver todos los parques" onPress={() => router.push('/parques')} />
       </Card>
       <Card style={[s.rowBetween, { backgroundColor: colors.lilacSoft }]}>
         <View style={{ flex: 1, gap: 6 }}>
@@ -328,7 +254,6 @@ function Actividad({ data, now }: { data: AppData; now: number }) {
         <T.Black>Recordarme {pet.species === 'gato' ? 'jugar' : 'pasear'} cada día a las</T.Black>
         <WalkReminder />
       </Card>
-      <Button label={`Registrar ${word.toLowerCase()}`} onPress={() => add('paseo')} />
     </>
   );
 }

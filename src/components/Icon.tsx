@@ -24,6 +24,7 @@ export type IconName =
   | 'camara'
   | 'alerta'
   | 'bandera'
+  | 'campana'
   | 'mapa'
   | 'reloj'
   | 'lista'
@@ -199,6 +200,9 @@ export function Icon({
       break;
     case 'bandera':
       body = <Path d="M5 21V4M5 4h11l-2 4 2 4H5" {...p} />;
+      break;
+    case 'campana':
+      body = <Path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4l2-2zM10 21h4" {...p} />;
       break;
     case 'mapa':
       body = <Path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14" {...p} />;

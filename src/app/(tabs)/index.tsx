@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AccountButton } from '../../components/AccountButton';
@@ -20,6 +20,7 @@ import {
   waterGoal,
 } from '../../lib/game';
 import { clock } from '../../lib/format';
+import { allReminders } from '../../lib/reminders';
 import { RADIUS, badge, badgeColors, distanceText, kindOf, meters, spot, title } from '../../lib/reports';
 import { useStore } from '../../lib/store';
 import { colors, fonts, shadow, softShadow } from '../../lib/theme';
@@ -33,6 +34,7 @@ export default function Inicio() {
   const now = useNow(walking ? 1000 : 30000);
   const [menu, setMenu] = useState(false);
   const [missions, setMissions] = useState(false);
+  const [alarms, setAlarms] = useState(false);
   const pet = data.pet!;
   const word = activityWord(pet.species);
   const petMood = mood(computeStats(data, now));
@@ -56,9 +58,10 @@ export default function Inicio() {
     { title: 'Que tome su agua', value: water / water100, text: `${water}/${water100} ml`, go: '/mascota' as const },
   ];
   const nearReports = reports(now).filter((r) => !r.closed && !r.mine && meters(r) <= RADIUS);
+  const upcoming = allReminders(data, now);
   const doneCount = list.filter((m) => m.value >= 1).length;
 
-  const go = (path: '/paseos' | '/paseo' | '/explorar' | '/parques' | '/mascota') => () => {
+  const go = (path: '/paseos' | '/paseo' | '/explorar' | '/mascota') => () => {
     setMenu(false);
     setMissions(false);
     if (path === '/mascota') router.navigate(path);
@@ -71,21 +74,6 @@ export default function Inicio() {
         initialWidth={700}
         controlsBottom={insets.bottom + 112}
         markers={[
-          {
-            id: 'parque', maxWidth: 1800,
-            x: 230,
-            y: -260,
-            node: (
-              <Pressable onPress={() => router.push('/parques')} style={s.pin}>
-                <View style={[s.pinLabel, softShadow]}>
-                  <T.Black style={s.pinText}>Parque nuevo · +30</T.Black>
-                </View>
-                <View style={[s.pinDot, { backgroundColor: colors.accent, width: 34, height: 34 }]}>
-                  <Icon name="estrella" size={14} color="#FFFFFF" strokeWidth={3} />
-                </View>
-              </Pressable>
-            ),
-          },
           // Reportes de la comunidad a 2 km: los perdidos y las emergencias llevan nombre.
           ...nearReports.map((r) => {
             const c = badgeColors(r);
@@ -171,6 +159,19 @@ export default function Inicio() {
         <Icon name="bandera" size={22} color={colors.accent} strokeWidth={2.4} />
       </Pressable>
 
+      <Pressable
+        accessibilityLabel="Recordatorios"
+        onPress={() => setAlarms(true)}
+        style={[s.roundBtn, softShadow, { top: insets.top + 182 }]}
+      >
+        <Icon name="campana" size={22} color={colors.accent} strokeWidth={2.2} />
+        {upcoming.length ? (
+          <View style={[s.badge, { minWidth: 20, right: -6 }]}>
+            <Text style={s.badgeText}>{upcoming.length}</Text>
+          </View>
+        ) : null}
+      </Pressable>
+
       <Text style={[s.exampleNote, { bottom: insets.bottom + 168 }]}>Mapa dibujado del barrio · pines de ejemplo · GPS muy pronto</Text>
 
       <Modal transparent visible={menu} animationType="fade" onRequestClose={() => setMenu(false)}>
@@ -184,7 +185,29 @@ export default function Inicio() {
             onPress={go(walking ? '/paseo' : '/paseos')}
           />
           <MenuRow compact icon="mapa" title="Mapa de exploración" detail="Parques, tiendas, veterinarias…" onPress={go('/explorar')} />
-          <MenuRow compact icon="bandera" tint="lilac" title="Parques" detail={`${data.parks.length} guardados · conquista`} onPress={go('/parques')} />
+        </View>
+      </Modal>
+
+      <Modal transparent visible={alarms} animationType="fade" onRequestClose={() => setAlarms(false)}>
+        <Pressable accessibilityLabel="Cerrar recordatorios" style={s.backdrop} onPress={() => setAlarms(false)} />
+        <View style={[s.missions, shadow, { top: insets.top + 64 }]}>
+          <T.Eyebrow>RECORDATORIOS</T.Eyebrow>
+          <ScrollView style={{ maxHeight: 360 }} contentContainerStyle={{ gap: 2 }}>
+            {upcoming.length === 0 ? <T.Muted style={{ fontSize: 14 }}>No tienes recordatorios todavía.</T.Muted> : null}
+            {upcoming.map((r) => (
+              <View key={r.id} style={s.alarmRow}>
+                <Text style={{ fontSize: 18 }}>{r.icon}</Text>
+                <View style={{ flex: 1 }}>
+                  <T.Black style={{ fontSize: 14 }} numberOfLines={2}>
+                    {r.title}
+                  </T.Black>
+                  <T.Muted style={{ fontSize: 12 }}>{r.when}</T.Muted>
+                </View>
+                {r.off ? <T.Muted style={{ fontSize: 12 }}>🔕</T.Muted> : null}
+              </View>
+            ))}
+          </ScrollView>
+          <T.Muted style={{ fontSize: 12 }}>Se crean al guardar vacunas, medicamentos, citas, comidas y paseos.</T.Muted>
         </View>
       </Modal>
 
@@ -241,6 +264,7 @@ const s = StyleSheet.create({
     gap: 12,
   },
   missionRow: { gap: 4 },
+  alarmRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.grey },
   missionBar: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   badge: {
     position: 'absolute',

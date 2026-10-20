@@ -7,7 +7,7 @@ import { Check, Chips, Input, ParkPicker } from '../components/form';
 import { BarrioMap } from '../components/BarrioMap';
 import { PetDrawing } from '../components/PetDrawing';
 import { Bar, Button, T } from '../components/ui';
-import { MISSION_XP, NEW_PARK_XP, WALK_GOALS, WALK_TYPES, activityWord, computeStats, goalFromKey, goalKey, minutesOn, missionGoal, mood, parkStats, RECURRENT_TIMES, startOfDay, walkGoals } from '../lib/game';
+import { MISSION_XP, NEW_PARK_XP, WALK_GOALS, WALK_TYPES, activityWord, computeStats, goalFromKey, goalText, goalKey, minutesOn, missionGoal, mood, parkStats, RECURRENT_TIMES, startOfDay, walkGoals } from '../lib/game';
 import { clock } from '../lib/format';
 import { useStore } from '../lib/store';
 import { colors, fonts, shadow } from '../lib/theme';
@@ -121,10 +121,22 @@ export default function PaseoEnCurso() {
         />
       </>
     );
+  } else if (preset) {
+    // Paseo ya registrado: solo su nombre y empezar.
+    const registered = walkGoals(data).find((g) => g.key === params.meta);
+    panel = (
+      <>
+        <T.Eyebrow style={{ textAlign: 'center' }}>{word.toUpperCase()} REGISTRADO</T.Eyebrow>
+        <T.Display style={{ fontSize: 26, textAlign: 'center' }}>{registered?.name ?? savedName ?? goalText(preset, data.parks)}</T.Display>
+        <Button label={`Empezar ${word.toLowerCase()} con ${pet.name}`} kind="solid" onPress={begin} />
+        <Button label="Volver" kind="secondary" onPress={back} />
+      </>
+    );
   } else {
     panel = (
       <>
-        <T.Display style={{ fontSize: 24, textAlign: 'center' }}>Objetivo de hoy</T.Display>
+        <T.Display style={{ fontSize: 26, textAlign: 'center' }}>{word === 'Juego' ? 'Nuevo juego' : 'Nuevo paseo'}</T.Display>
+        <T.Muted style={{ textAlign: 'center', marginTop: -8 }}>Elige el objetivo de hoy</T.Muted>
         <T.Black>Actividad</T.Black>
         <Chips options={WALK_TYPES} value={tipo} onChange={setTipo} />
         <T.Black>Tiempo</T.Black>

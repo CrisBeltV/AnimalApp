@@ -1,4 +1,3 @@
-import { router } from 'expo-router';
 import { useState } from 'react';
 import { Linking, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -9,6 +8,7 @@ import { Chips } from '../components/form';
 import { BackHeader, Button, T } from '../components/ui';
 import type { IconName } from '../components/Icon';
 import { spotFor } from '../lib/barrio';
+import { parkSpot } from '../lib/parks';
 import { parkStats } from '../lib/game';
 import { useStore } from '../lib/store';
 import { colors, fonts, radius, shadow, softShadow } from '../lib/theme';
@@ -50,7 +50,6 @@ export default function Explorar() {
         cat: c,
         name: p.name,
         detail: [p.barrio, `${parkStats(data.entries, p.id).minutes} min`].filter(Boolean).join(' · '),
-        open: () => router.push({ pathname: '/parque', params: { id: p.id } }),
       }));
     if (c === 'veterinarias')
       return data.vets.map((v) => ({ id: v.id, cat: c, name: v.name, detail: [v.doctor, v.place].filter(Boolean).join(' · '), address: v.address, phone: v.phone }));
@@ -81,7 +80,7 @@ export default function Explorar() {
           controlsBottom={28}
           markers={list.map((p) => ({
             id: p.id,
-            ...spotFor(p.id),
+            ...(p.cat === 'parques' ? parkSpot(p.id) : spotFor(p.id)),
             node: (
               <Pressable onPress={p.open} style={s.pin}>
                 <View style={[s.pinLabel, softShadow]}>

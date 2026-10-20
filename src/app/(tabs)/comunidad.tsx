@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AccountButton } from '../../components/AccountButton';
 import { Icon } from '../../components/Icon';
-import { Button, T, soon } from '../../components/ui';
+import { T, soon } from '../../components/ui';
 import { ACHIEVEMENTS, weekMinutes } from '../../lib/game';
 import { RADIUS, REUNIONS_YEAR, ago, posted, kindOf, meters } from '../../lib/reports';
 import { useStore } from '../../lib/store';
@@ -60,19 +60,19 @@ export default function Comunidad() {
           <Icon name="chevronRight" size={20} color={colors.textMuted} strokeWidth={2.2} />
         </Pressable>
         <View style={s.row}>
-          <Button label="Crear reporte" kind="lost" style={{ flex: 1 }} onPress={() => router.push('/nuevo-reporte')} />
-          <Button label="Ver mapa" style={{ flex: 1 }} onPress={() => router.push({ pathname: '/perdidas', params: { vista: 'mapa' } })} />
+          {[
+            { label: 'Crear reporte', icon: '＋', go: () => router.push('/nuevo-reporte') },
+            { label: 'Ver mapa', icon: '🗺️', go: () => router.push({ pathname: '/perdidas', params: { vista: 'mapa' } }) },
+            { label: 'Reencuentros', icon: '🏡', go: () => router.push('/reencuentros') },
+          ].map((b) => (
+            <Pressable key={b.label} accessibilityRole="button" accessibilityLabel={b.label} onPress={b.go} style={s.lostBtn}>
+              <Text style={s.lostBtnIcon}>{b.icon}</Text>
+              <T.Black style={{ fontSize: 13, textAlign: 'center' }}>{b.label}</T.Black>
+            </Pressable>
+          ))}
         </View>
+        <T.Muted style={{ fontSize: 12, textAlign: 'center' }}>{REUNIONS_YEAR + data.reports.filter((r) => r.closed).length} reencuentros este año en Engativá</T.Muted>
       </View>
-
-      <Pressable accessibilityLabel="Reencuentros" onPress={() => router.push('/reencuentros')} style={s.reunions}>
-        <Text style={{ fontSize: 26 }}>🏡</Text>
-        <View style={{ flex: 1 }}>
-          <T.Black style={{ color: colors.foundText }}>{REUNIONS_YEAR + data.reports.filter((r) => r.closed).length} reencuentros este año</T.Black>
-          <T.Muted style={{ fontSize: 13 }}>Historias, aliados y preguntas</T.Muted>
-        </View>
-        <Icon name="chevronRight" size={20} color={colors.foundText} strokeWidth={2.2} />
-      </Pressable>
 
       <View style={s.row}>
         <Pressable
@@ -166,15 +166,19 @@ const s = StyleSheet.create({
     borderColor: '#FFFFFF',
   },
   alertBadgeText: { color: '#FFFFFF', fontSize: 11, fontFamily: fonts.bodyBlack, fontWeight: '800' },
-  reunions: {
-    backgroundColor: colors.foundSoft,
-    borderRadius: 20,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    flexDirection: 'row',
+  lostBtn: {
+    flex: 1,
+    minHeight: 76,
+    borderRadius: 18,
+    backgroundColor: colors.blue,
+    borderWidth: 1.5,
+    borderColor: colors.blueOutline,
     alignItems: 'center',
-    gap: 12,
+    justifyContent: 'center',
+    gap: 4,
+    paddingHorizontal: 4,
   },
+  lostBtnIcon: { fontSize: 22, color: colors.accent, fontWeight: '700' },
   alertIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.lost, alignItems: 'center', justifyContent: 'center' },
   row: { flexDirection: 'row', gap: 10 },
   stat: { flex: 1, backgroundColor: colors.card, borderRadius: 18, paddingVertical: 10, paddingHorizontal: 14 },
