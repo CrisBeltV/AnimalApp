@@ -22,7 +22,7 @@ create policy "Cada dueño ve sus datos" on public.app_data
 create table if not exists public.reports (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
-  kind text not null check (kind in ('perdida', 'encontrada')),
+  kind text not null check (kind in ('perdida', 'visto', 'emergencia', 'adopcion', 'hogar', 'encontrada')),
   pet_name text not null,
   species text not null check (species in ('perro', 'gato')),
   description text not null default '',
@@ -34,6 +34,12 @@ create table if not exists public.reports (
   closed boolean not null default false, -- true cuando la mascota volvió a casa
   created_at timestamptz not null default now()
 );
+
+-- Los tipos de reporte crecieron (visto, emergencia, adopción, hogar temporal).
+-- Si la tabla ya existía con la regla vieja, esto la actualiza.
+alter table public.reports drop constraint if exists reports_kind_check;
+alter table public.reports add constraint reports_kind_check
+  check (kind in ('perdida', 'visto', 'emergencia', 'adopcion', 'hogar', 'encontrada'));
 
 create index if not exists reports_open_recent on public.reports (closed, created_at desc);
 

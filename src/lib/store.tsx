@@ -3,7 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { ReactNode } from 'react';
 
 import { useAuth } from './auth';
-import { fetchReports, publishReport, pullData, pushData } from './cloud';
+import { closeCloudReport, fetchReports, publishReport, pullData, pushData } from './cloud';
 
 import { KIND_INFO, NEW_PARK_XP, newlyUnlocked, walkXp } from './game';
 import type { Achievement } from './game';
@@ -243,7 +243,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           const seen = { ...sighting, by: d.ownerName ? `${d.ownerName} (tú)` : 'Tú' };
           return { ...d, reportExtras: { ...d.reportExtras, [id]: { ...extra, sightings: [...(extra.sightings ?? []), seen] } } };
         }),
-      closeReport: (id) => change((d) => ({ ...d, reports: d.reports.map((r) => (r.id === id ? { ...r, closed: true } : r)) })),
+      closeReport: (id) => {
+        // Con cuenta, el reporte que se ve puede ser la copia de la nube (id "c-…"): se cierran ambas copias.
+        const target = [...data.reports, ...neighbors].find((r) => r.id === id);
+        const same = (r: Report) => r.id === id || (!!target?.cloudId && r.cloudId === target.cloudId);
+        change((d) => ({ ...d, reports: d.reports.map((r) => (same(r) ? { ...r, closed: true } : r)) }));
+        setNeighbors((list) => list.map((r) => (same(r) ? { ...r, closed: true } : r)));
+        // En la nube también, para que los vecinos dejen de verlo como perdido.
+        if (userId && target?.cloudId) {
+          closeCloudReport(target.cloudId)
+            .then(refreshReports)
+            .catch(() => {});
+        }
+      },
       addEntry,
       updateEntry: (id, patch) =>
         update((d) => ({

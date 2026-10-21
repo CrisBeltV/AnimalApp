@@ -80,3 +80,10 @@ export async function publishReport(r: Omit<Report, 'id'>): Promise<string | nul
   if (error) throw error;
   return data.id as string;
 }
+
+// Marca un reporte propio como resuelto (la mascota volvió a casa).
+export async function closeCloudReport(cloudId: string): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase.from('reports').update({ closed: true }).eq('id', cloudId);
+  if (error) throw error;
+}
