@@ -42,7 +42,8 @@
           "photosPermission": "Animaapp usa tus fotos para guardar el carnet de vacunas y las cajas de medicamentos de tu mascota."
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      "expo-status-bar"
     ],
     "scheme": "animaapp",
     "splash": {
