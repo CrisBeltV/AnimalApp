@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [dev-cristian, main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    name: App (lint, tipos, tests, web)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test -- --ci
+      - run: npm run build:web
+
+  database:
+    name: Base de datos (migraciones y pgTAP)
+    runs-on: ubuntu-latest
+    # Se activa cuando existan migraciones (Fase 0, paso de Supabase).
+    if: hashFiles('supabase/migrations/*.sql') != ''
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - run: supabase start
+      - run: supabase db reset
+      - run: supabase test db

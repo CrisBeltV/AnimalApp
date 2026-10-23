@@ -3,6 +3,8 @@ import type * as NotificationsType from 'expo-notifications';
 // Expo Go no siempre trae el módulo nativo de avisos: si falta, la app sigue y los recordatorios quedan solo en la lista de Salud.
 let Notifications: typeof NotificationsType | null = null;
 try {
+  // require (y no import) para poder atrapar el fallo si el módulo nativo no existe.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   Notifications = require('expo-notifications');
 } catch {
   Notifications = null;

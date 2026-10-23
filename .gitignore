@@ -42,3 +42,11 @@ yarn-error.*
 
 # local editor config (rutas absolutas del usuario)
 .vscode/
+
+# Supabase CLI
+supabase/.temp/
+supabase/.branches/
+
+# Variables de entorno locales
+.env
+.env.local
