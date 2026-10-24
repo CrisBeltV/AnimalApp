@@ -1,0 +1,3 @@
+-- Datos de prueba SINTÉTICOS. Nunca PII real de dueños ni de mascotas.
+-- Se carga automáticamente en cada `npm run db:reset`.
+-- (Vacío en la Fase 0: se llena a medida que aparecen las tablas.)
