@@ -1,5 +1,7 @@
 # Animaapp
 
+> **Rama `dev-cristian`:** el estado, los pendientes y el plan de producción están en [`docs/`](docs/README.md). Empezá por [`docs/estado-y-pendientes.md`](docs/estado-y-pendientes.md).
+
 App para cuidar a tu perro o gato y convertir su cuidado diario en un juego.
 Hecha con Expo (React Native): un solo código para Android, iPhone y web.
 
