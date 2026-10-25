@@ -14,7 +14,7 @@ const TABS: Record<string, { label: string; icon: IconName }> = {
   comunidad: { label: 'Comunidad', icon: 'comunidad' },
 };
 
-export function BottomBar({ state, navigation, insets }: BottomTabBarProps) {
+export function BottomBar({ state, navigateToTab, insets }: BottomTabBarProps) {
   return (
     <View pointerEvents="box-none" style={[s.wrap, { bottom: Math.max(insets.bottom, 12) + 12 }]}>
       <View style={[s.bar, shadow]}>
@@ -28,7 +28,7 @@ export function BottomBar({ state, navigation, insets }: BottomTabBarProps) {
               accessibilityRole="tab"
               accessibilityState={{ selected: active }}
               accessibilityLabel={tab.label}
-              onPress={() => navigation.navigate(route.name)}
+              onPress={() => navigateToTab(route.key)}
               style={[s.item, { marginTop: active ? -34 : 0 }]}
             >
               <View style={[s.circle, active ? s.circleActive : s.circleIdle]}>

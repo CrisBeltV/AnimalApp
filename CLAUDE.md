@@ -25,7 +25,7 @@ Scripts: `npm start`, `npm run android`, `npm run web`, `npm run typecheck`, `np
 ## Stack
 
 - **App**: React Native + Expo + TypeScript. Elegido sobre Flutter porque su salida web es DOM real (react-native-web) y porque TS/JS transfiere a otros contextos.
-- **Expo SDK 57** (`expo ~57`, React 19.2, React Native 0.86, TypeScript 6). Se bajó de 58 a 57 el 2026-10-20 porque Expo Go de Play Store todavía no soportaba la 58 ("Incompatible SDK version"). Antes de subir el SDK, confirmar que Expo Go de Play Store y de App Store ya lo soporta, y que la app abre en el celular de los dos.
+- **Expo SDK 58** (`expo ~58`, React 19.3, React Native 0.88, TypeScript 6). Se bajó a 57 el 2026-10-20 porque Expo Go de Play Store todavía no soportaba la 58 ("Incompatible SDK version") y se volvió a 58 el 2026-10-25, cuando Cristian actualizó Expo Go. Antes de subir el SDK, confirmar que Expo Go de Play Store y de App Store ya lo soporta, y que la app abre en el celular.
 - **Expo Go no trae todos los módulos nativos**: `expo-notifications` se carga de forma opcional en `src/lib/notify.ts` por eso. Cualquier librería nativa nueva hay que probarla en Expo Go antes de depender de ella.
 - **Backend actual**: Supabase (auth con correo y contraseña, datos por dueño). Las claves van en `src/lib/cloudConfig.ts` y hoy están vacías: sin ellas la app funciona solo en el teléfono. Solo la clave `anon`/`publishable` puede ir en la app; **nunca** `service_role` ni `secret`, y no se commitean claves.
 - **Backend futuro (propuesto, no construido)**: Python + FastAPI y PostgreSQL con PostGIS y pgvector, para el matching visual de la fase de Recuperación.
