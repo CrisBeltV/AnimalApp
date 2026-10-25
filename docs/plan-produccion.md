@@ -34,7 +34,7 @@ El objetivo es reconstruir la app **módulo por módulo y pantalla por pantalla*
 - **`main` de Jim:** queda como demo congelado de referencia. Si Jim se suma, entra por el mismo flujo.
 - **Login:** correo + contraseña en la fase 1, y Google después. Apple Sign-In cuando haya iPhone, porque la App Store lo exige si se ofrece Google.
 - **Idioma y país:** español de Colombia (`es-CO`) desde el día uno, con textos fuera del código (i18n) para sumar países e idiomas sin reescribir.
-- **Mapas:** se decide en la spec del módulo de paseos (fase 3). Recomendación inicial: MapLibre con tiles basados en OpenStreetMap, el mismo mapa en web y Android y sin costo por uso. Alternativa: Google Maps.
+- **Mapas (decidido 2026-10-25):** MapLibre con **tiles vectoriales** de datos OpenStreetMap. Sin Google Maps. Estética de juego de aventura tipo Pokémon GO lograda con un **estilo propio** (JSON de estilo, no una librería propia): colores planos con la paleta de AnimalApp, sin etiquetas de comercios, cámara inclinada, edificios en 3D y una capa de juego encima (avatar, parques como islas, niebla de zonas sin explorar). Celular: MapLibre Native (exige build propio con EAS). Web: `maplibre-gl`, separado con archivos `.web.tsx`. Tiles: MapTiler (plan gratis) en desarrollo y Protomaps autoalojado si el uso crece. Los tiles tienen que ser vectoriales; los de imagen (raster) no se pueden recolorear. Los límites del plan gratis de cada proveedor se verifican al elegir.
 - **Costos:** planes gratis durante el desarrollo (Supabase, EAS, Sentry). La sección 9 lista qué se paga y cuándo.
 - **Datos de prueba:** siempre sintéticos (`supabase/seed.sql`), como dice `CLAUDE.md`.
 
@@ -598,7 +598,9 @@ Orden según la arquitectura de producto (Expediente → Comunidad → Recuperac
 **Tablas:** `pet_events` y detalles, `foods`, `medications`, `reminders` y `media`.
 
 ### Fase 3: Paseos y lugares
-- **Decisión de proveedor de mapas** (ADR).
+- **Primer paso: build propio de Android con EAS** (necesario para MapLibre Native y el GPS con la pantalla apagada). Cristian debe correr `npx eas login`.
+- **Spec del estilo visual del mapa**, aprobada por Cristian antes de codear: paleta, qué se oculta, inclinación de cámara, 3D y diseño de la capa de juego. El estilo se diseña de forma visual con Maputnik.
+- **ADR del proveedor de tiles** (MapTiler en desarrollo, Protomaps autoalojado después).
 - **Carga de parques reales** de OpenStreetMap para Bogotá en `places`.
 | Pantalla del demo | Qué se hace |
 |---|---|
