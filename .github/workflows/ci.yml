@@ -28,8 +28,6 @@ jobs:
   database:
     name: Base de datos (migraciones y pgTAP)
     runs-on: ubuntu-latest
-    # Se activa cuando existan migraciones (Fase 0, paso de Supabase).
-    if: hashFiles('supabase/migrations/*.sql') != ''
     steps:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
