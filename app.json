@@ -38,16 +38,26 @@
       [
         "expo-image-picker",
         {
-          "cameraPermission": "Animaapp usa la cámara para fotografiar el carnet de vacunas y las cajas de medicamentos de tu mascota.",
+          "cameraPermission": "Animaapp usa la cÃ¡mara para fotografiar el carnet de vacunas y las cajas de medicamentos de tu mascota.",
           "photosPermission": "Animaapp usa tus fotos para guardar el carnet de vacunas y las cajas de medicamentos de tu mascota."
         }
       ],
       "expo-notifications",
-      "expo-status-bar"
+      "expo-status-bar",
+      "@maplibre/maplibre-react-native"
     ],
     "scheme": "animaapp",
     "splash": {
       "backgroundColor": "#F3F5F8"
-    }
+    },
+    "extra": {
+      "router": {
+        "asyncRoutes": false
+      },
+      "eas": {
+        "projectId": "163e68cf-6ce8-4131-beae-2db69efd2ff7"
+      }
+    },
+    "owner": "cbv00s-team"
   }
 }
