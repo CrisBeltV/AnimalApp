@@ -181,7 +181,12 @@ export function computeStats(data: AppData, now: number): Stats {
 
 export type Mood = 'feliz' | 'normal' | 'triste';
 
+// Decisión de Cristian (2026-11-05): por ahora la mascota siempre se ve feliz y se ignora la regla
+// de abajo (promedio de felicidad, amor y alimentación). Poner en false para volver a la regla.
+const ALWAYS_HAPPY = true;
+
 export function mood(stats: Stats): Mood {
+  if (ALWAYS_HAPPY) return 'feliz';
   const avg = (stats.felicidad + stats.amor + stats.alimentacion) / 3;
   if (avg >= 65) return 'feliz';
   if (avg >= 35) return 'normal';

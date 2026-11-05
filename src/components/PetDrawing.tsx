@@ -36,19 +36,42 @@ export function PetDrawing({ species, mood, size = 112 }: { species: Species; mo
     );
   }
 
-  const fur = sad ? '#B8AFA6' : '#D9A066';
-  const ear = sad ? '#8E847B' : '#8B5E3C';
+  // Perro: beagle limón (pelaje claro, franja y hocico blancos, orejas largas y caídas), estilo de juego.
+  // Feliz: ojos brillantes, lengüita y una chispa. Triste: tono apagado, orejas más caídas y una lágrima.
+  const happy = mood === 'feliz';
+  const fur = sad ? '#DCCBA6' : '#E8CB8E';
+  const ear = sad ? '#B79A6E' : '#C99B5C';
+  const light = sad ? '#F4EEE2' : '#FFF8E8';
+  const ink = '#1F2A3A';
+  const dogMouth = happy ? (
+    <>
+      <Path d="M48 81 Q60 101 72 81 Q60 87 48 81 Z" fill="#6B2233" />
+      <Ellipse cx={60} cy={92} rx={6} ry={4.5} fill="#F2788A" />
+    </>
+  ) : sad ? (
+    <Path d="M52 89 Q60 83 68 89" stroke={ink} strokeWidth={2.5} fill="none" strokeLinecap="round" />
+  ) : (
+    <Path d="M50 82 Q60 91 70 82" stroke={ink} strokeWidth={2.5} fill="none" strokeLinecap="round" />
+  );
   return (
     <Svg width={size} height={size} viewBox="0 0 120 120">
-      <Path d={sad ? 'M30 46 C14 40 8 70 24 84 Z' : 'M30 40 C16 18 4 52 22 74 Z'} fill={ear} />
-      <Path d={sad ? 'M90 46 C106 40 112 70 96 84 Z' : 'M90 40 C104 18 116 52 98 74 Z'} fill={ear} />
-      <Ellipse cx={60} cy={62} rx={34} ry={32} fill={fur} />
-      <Ellipse cx={60} cy={79} rx={18} ry={13} fill="#F3D9B8" />
-      <Circle cx={47} cy={56} r={4.5} fill="#1F2A3A" />
-      <Circle cx={73} cy={56} r={4.5} fill="#1F2A3A" />
-      <Ellipse cx={60} cy={72} rx={6} ry={4.5} fill="#1F2A3A" />
-      {mouth}
+      <Path d={sad ? 'M30 48 C10 46 4 84 16 106 C26 112 36 90 38 64 Z' : 'M30 30 C8 28 2 70 14 96 C24 102 36 80 38 52 Z'} fill={ear} />
+      <Path d={sad ? 'M90 48 C110 46 116 84 104 106 C94 112 84 90 82 64 Z' : 'M90 30 C112 28 118 70 106 96 C96 102 84 80 82 52 Z'} fill={ear} />
+      <Ellipse cx={60} cy={62} rx={37} ry={33} fill={fur} />
+      <Path d="M60 30 C52 40 52 52 60 58 C68 52 68 40 60 30 Z" fill={light} />
+      {!sad && <Circle cx={34} cy={74} r={5} fill="#F7A8A0" opacity={0.55} />}
+      {!sad && <Circle cx={86} cy={74} r={5} fill="#F7A8A0" opacity={0.55} />}
+      <Ellipse cx={60} cy={78} rx={19} ry={14} fill={light} />
+      <Ellipse cx={45} cy={56} rx={6} ry={sad ? 5 : 6} fill={ink} />
+      <Ellipse cx={75} cy={56} rx={6} ry={sad ? 5 : 6} fill={ink} />
+      <Circle cx={47} cy={sad ? 55 : 54} r={2} fill="#FFFFFF" />
+      <Circle cx={77} cy={sad ? 55 : 54} r={2} fill="#FFFFFF" />
+      <Ellipse cx={60} cy={70} rx={7} ry={5} fill="#2B2B3A" />
+      <Ellipse cx={58} cy={68} rx={2} ry={1.2} fill="#FFFFFF" opacity={0.7} />
+      <Path d="M60 75 L60 80" stroke={ink} strokeWidth={2} strokeLinecap="round" />
+      {dogMouth}
       {tear}
+      {happy && <Path d="M104 12 l2.5 6 6 2.5 -6 2.5 -2.5 6 -2.5 -6 -6 -2.5 6 -2.5 z" fill="#FFD54A" />}
     </Svg>
   );
 }
