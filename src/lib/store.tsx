@@ -52,6 +52,7 @@ type Store = {
   saveRoutine: (routine: Omit<WalkRoutine, 'id'> & { id?: string }) => string;
   saveProvider: (provider: Omit<Provider, 'id'> & { id?: string }) => string;
   setSettings: (patch: Partial<Settings>) => void;
+  setPetPhoto: (photo: string | undefined) => void;
   startWalk: (goal?: WalkGoal) => void;
   finishWalk: () => { minutes: number; id: string };
   cancelWalk: () => void;
@@ -312,6 +313,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return id;
       },
       setSettings: (patch) => change((d) => ({ ...d, settings: { ...d.settings, ...patch } })),
+      setPetPhoto: (photo) => change((d) => ({ ...d, pet: d.pet ? { ...d.pet, photo } : d.pet })),
       startWalk: (goal) => change((d) => ({ ...d, activeWalkStart: Date.now(), walkGoal: goal ?? { tipo: 'paseo' } })),
       finishWalk: () => {
         const start = data.activeWalkStart;

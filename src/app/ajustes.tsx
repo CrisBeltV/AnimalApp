@@ -4,12 +4,14 @@ import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { BackHeader, Button, Card, T } from '../components/ui';
 import { useAuth } from '../lib/auth';
+import { pickPhoto } from '../lib/photo';
 import { useStore } from '../lib/store';
 import type { SyncState } from '../lib/store';
 import { colors, fonts, radius } from '../lib/theme';
 
 export default function Ajustes() {
-  const { data, setOwnerName, reset, sync, clearLocal } = useStore();
+  const { data, setOwnerName, reset, sync, clearLocal, setPetPhoto, setSettings } = useStore();
+  const mapView = data.settings.mapView ?? '3d';
   const auth = useAuth();
   const [leaving, setLeaving] = useState(false);
   const [name, setName] = useState(data.ownerName);
@@ -23,6 +25,19 @@ export default function Ajustes() {
         <TextInput value={name} onChangeText={setName} style={s.input} placeholder="Camila" placeholderTextColor={colors.textMuted} />
         <Button label="Guardar nombre" disabled={!name.trim() || name.trim() === data.ownerName} onPress={() => setOwnerName(name.trim())} />
 
+        {data.pet && (
+          <Card style={{ gap: 8, marginTop: 8 }}>
+            <T.Black>{data.pet.name} en el mapa</T.Black>
+            <T.Muted>La foto sale en su medalla en Inicio. Sin foto se ve su dibujo.</T.Muted>
+            <Button label="Tomar foto" kind="secondary" onPress={async () => { const uri = await pickPhoto('camara'); if (uri) setPetPhoto(uri); }} />
+            <Button label="Elegir de la galería" kind="secondary" onPress={async () => { const uri = await pickPhoto('galeria'); if (uri) setPetPhoto(uri); }} />
+            {data.pet.photo ? <Button label="Quitar foto" kind="secondary" onPress={() => setPetPhoto(undefined)} /> : null}
+            <T.Black style={{ marginTop: 6 }}>Vista del mapa</T.Black>
+            <Button label="3D: cámara inclinada" kind={mapView === '3d' ? 'solid' : 'secondary'} onPress={() => setSettings({ mapView: '3d' })} />
+            <Button label="2D: plano visto desde arriba" kind={mapView === '2d' ? 'solid' : 'secondary'} onPress={() => setSettings({ mapView: '2d' })} />
+          </Card>
+        )}
+$
         <Card style={{ gap: 8, marginTop: 8 }}>
           <T.Black>Tu cuenta y tus datos</T.Black>
           {auth.session ? (

@@ -4,9 +4,9 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AccountButton } from '../../components/AccountButton';
-import { BarrioMap } from '../../components/BarrioMap';
 import { Icon } from '../../components/Icon';
-import { PetDrawing } from '../../components/PetDrawing';
+import { PetBadge } from '../../components/PetBadge';
+import { PetMap } from '../../components/PetMap';
 import { Bar, MenuRow, T, soon } from '../../components/ui';
 import {
   MISSION_XP,
@@ -28,7 +28,7 @@ import { useNow } from '../../lib/useNow';
 
 // INICIO = Paseo, el corazón de la app: el barrio como mapa de juego con tu mascota en el centro.
 export default function Inicio() {
-  const { data, reports } = useStore();
+  const { data, reports, setSettings } = useStore();
   const insets = useSafeAreaInsets();
   const walking = data.activeWalkStart !== null;
   const now = useNow(walking ? 1000 : 30000);
@@ -70,8 +70,9 @@ export default function Inicio() {
 
   return (
     <View style={s.screen}>
-      <BarrioMap
-        initialWidth={700}
+      <PetMap
+        view={data.settings.mapView ?? '3d'}
+        onViewChange={(mapView) => setSettings({ mapView })}
         controlsBottom={insets.bottom + 112}
         markers={[
           // Reportes de la comunidad a 2 km: los perdidos y las emergencias llevan nombre.
@@ -103,13 +104,10 @@ export default function Inicio() {
             id: 'mascota',
             x: 0,
             y: 0,
+            anchor: 'bottom' as const,
             node: (
               <Pressable accessibilityLabel={`${pet.name}, tu mascota`} onPress={() => router.navigate('/mascota')} style={s.petSpot}>
-                <View style={s.petShadow} />
-                <PetDrawing species={pet.species} mood={petMood} size={96} />
-                <View style={[s.petName, softShadow]}>
-                  <T.Black style={{ fontSize: 13 }}>{pet.name}</T.Black>
-                </View>
+                <PetBadge name={pet.name} species={pet.species} mood={petMood} photo={pet.photo} />
               </Pressable>
             ),
           },

@@ -5,6 +5,7 @@ export type Pet = {
   species: Species;
   breed: string;
   birthDate?: string; // AAAA-MM-DD
+  photo?: string; // foto de la medalla en el mapa (dirección del archivo)
   createdAt: number;
 };
 
@@ -172,6 +173,7 @@ export type Settings = {
   mealNames?: Record<string, string>; // nombre de cada horario: "Desayuno"
   mealOff?: string[]; // horarios guardados con el aviso apagado
   walkTime?: string; // "18:00"
+  mapView?: '2d' | '3d'; // vista del mapa de Inicio (por defecto 3d)
   notifIds: Record<string, string>; // aviso agendado por horario
 };
 
