@@ -17,7 +17,7 @@ const ITEMS: { kind: EntryKind; label?: string; icon: IconName; route?: string }
   { kind: 'comida', icon: 'comida' },
   { kind: 'agua', icon: 'agua' },
   { kind: 'peso', icon: 'cuerpo' },
-  { kind: 'veterinario', label: 'Expediente: vacuna, tratamiento, consulta', icon: 'salud', route: '/expediente' },
+  { kind: 'veterinario', label: 'Expediente', icon: 'salud', route: '/expediente' },
   { kind: 'novedad', label: 'Novedades', icon: 'sintoma' },
   { kind: 'paseo', icon: 'reloj' },
   { kind: 'higiene', label: 'Baño, uñas o peluquería', icon: 'cuerpo' },

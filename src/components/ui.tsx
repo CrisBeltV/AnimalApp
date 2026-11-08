@@ -186,7 +186,7 @@ export function EntryRow({ entry, species }: { entry: Entry; species: Species })
         {detail ? <T.Muted style={{ fontSize: 13 }} numberOfLines={2}>{detail}</T.Muted> : null}
       </View>
       <View style={{ alignItems: 'flex-end' }}>
-        {entry.photos?.length ? <Icon name="camara" size={16} color={colors.textMuted} /> : null}
+        {entry.photos?.length || entry.files?.length ? <Icon name="camara" size={16} color={colors.textMuted} /> : null}
         <T.Black style={{ fontSize: 13, color: colors.accent }}>+{entry.xp} XP</T.Black>
         <T.Muted style={{ fontSize: 12 }}>{when(entry.at)}</T.Muted>
       </View>

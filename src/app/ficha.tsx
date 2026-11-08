@@ -2,7 +2,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import { DeleteEntry, Input, PhotoSet, ProviderPicker, ReminderSheet, finish } from '../components/form';
+import { DeleteEntry, Input, ProviderPicker, ReminderSheet, finish } from '../components/form';
 import type { RemindTarget } from '../components/form';
 import { Files } from '../components/Files';
 import { BackHeader, Button, Card, T, soon } from '../components/ui';
@@ -33,8 +33,10 @@ export default function Ficha() {
     if (editing) return { nombre: editing.note ?? '', [ficha.dateKey]: formatDate(editing.at) };
     return food ? { comidasDia: '2' } : {};
   });
-  const [photos, setPhotos] = useState<string[]>(editing?.photos ?? []);
-  const [files, setFiles] = useState<Attachment[]>(editing?.files ?? []);
+  // Los registros viejos guardaban las fotos como direcciones sueltas: se muestran como documentos.
+  const [files, setFiles] = useState<Attachment[]>(
+    editing?.files ?? (editing?.photos ?? []).filter(Boolean).map((uri, i) => ({ id: `foto-${i}`, uri, type: 'image' as const, name: `foto-${i + 1}.jpg` })),
+  );
   const [step, setStep] = useState<'datos' | 'revisar'>('datos');
   const [savedId, setSavedId] = useState<string | null>(null);
   const [targets, setTargets] = useState<RemindTarget[]>([]);
@@ -52,7 +54,7 @@ export default function Ficha() {
     const day = parseDate(val(ficha.dateKey)) ?? Date.now();
     const sameDay = new Date(day).toDateString() === new Date().toDateString();
     const at = sameDay ? Date.now() : day + 12 * 3600000;
-    const entry = { fields: clean, photos: photos.filter(Boolean), files, note: clean.nombre, at };
+    const entry = { fields: clean, photos: [], files, note: clean.nombre, at };
     let id: string;
     if (editing) {
       updateEntry(editing.id, entry);
@@ -107,10 +109,10 @@ export default function Ficha() {
               ))}
             </Card>
           )}
-          {photos.some(Boolean) && (
+          {files.some((f) => f.type === 'image') && (
             <View style={{ flexDirection: 'row', gap: 10 }}>
-              {photos.filter(Boolean).map((p, i) => (
-                <Image key={i} source={{ uri: p }} style={s.thumb} resizeMode="cover" />
+              {files.filter((f) => f.type === 'image').map((f) => (
+                <Image key={f.id} source={{ uri: f.uri }} style={s.thumb} resizeMode="cover" />
               ))}
             </View>
           )}
@@ -141,17 +143,9 @@ export default function Ficha() {
       <ScrollView contentContainerStyle={s.page} keyboardShouldPersistTaps="handled">
         <Card style={{ gap: 10 }}>
           <T.Black>{ficha.photosTitle}</T.Black>
-          <T.Muted style={{ fontSize: 13 }}>Toma una foto de cada lado. Quedan guardadas con el registro.</T.Muted>
-          <PhotoSet photos={photos} onChange={setPhotos} sides={ficha.sides} />
-          <Button label="Leer los datos de las fotos" kind="secondary" disabled={!photos.some(Boolean)} onPress={reading} />
+          <Files files={files} onChange={setFiles} />
+          <Button label="Leer los datos de las fotos" kind="secondary" disabled={files.length === 0} onPress={reading} />
         </Card>
-
-        {!food && (
-          <Card style={{ gap: 10 }}>
-            <T.Black>Documentos</T.Black>
-            <Files files={files} onChange={setFiles} />
-          </Card>
-        )}
 
         <T.Muted>Escribe los datos. Los marcados con * son necesarios.</T.Muted>
         {fields.map((f, i) => (

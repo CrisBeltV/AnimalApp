@@ -17,7 +17,6 @@ import {
   groomingTypes,
   MOODS,
   foodStatus,
-  isIssue,
   lowMoodDays,
   activityWord,
   computeStats,
@@ -34,7 +33,6 @@ import {
 } from '../../lib/game';
 import { kg } from '../../lib/format';
 import { dailyKcal, dayNutrition } from '../../lib/foods';
-import { entryTitle, expedienteSummary } from '../../lib/expediente';
 import { formatDate } from '../../lib/health';
 import { newEntry, openEntry } from '../../lib/routes';
 import { useStore } from '../../lib/store';
@@ -70,7 +68,7 @@ export default function MiMascota() {
     actividad: <Actividad data={data} now={now} />,
     comida: <Comida data={data} now={now} />,
     cuerpo: <Cuerpo data={data} />,
-    salud: <Salud data={data} now={now} />,
+    salud: <Salud />,
     animo: <Animo data={data} now={now} onFilter={setFilter} />,
   };
 
@@ -465,80 +463,18 @@ function Cuerpo({ data }: { data: AppData }) {
   );
 }
 
-function HealthSection({
-  icon,
-  title,
-  empty,
-  kinds,
-  addKind,
-  data,
-  alert,
-}: {
-  icon: IconName;
-  title: string;
-  empty: string;
-  kinds: EntryKind[];
-  addKind: EntryKind;
-  data: AppData;
-  alert?: boolean;
-}) {
-  const list = data.entries.filter((e) => kinds.includes(e.kind)).slice(0, 3);
-  return (
-    <Card style={[{ gap: 6 }, alert && { borderWidth: 2, borderColor: colors.lost }]}>
-      <Pressable accessibilityLabel={`Añadir: ${title}`} onPress={() => add(addKind)} style={s.healthHead}>
-        <View style={[s.healthIcon, { backgroundColor: alert ? colors.lostSoft : colors.blue }]}>
-          <Icon name={icon} size={20} color={alert ? colors.lostText : colors.accent} />
-        </View>
-        <T.Black style={{ flex: 1 }}>{title}</T.Black>
-        <View style={s.addChip}>
-          <Icon name="mas" size={16} color={colors.accent} />
-          <T.Black style={{ fontSize: 13, color: colors.accent }}>Añadir</T.Black>
-        </View>
-      </Pressable>
-      {list.length === 0 ? (
-        <T.Muted style={{ fontSize: 13 }}>{empty}</T.Muted>
-      ) : (
-        list.map((e) => <EntryRow key={e.id} entry={e} species={data.pet!.species} />)
-      )}
-    </Card>
-  );
-}
-
-function Salud({ data, now }: { data: AppData; now: number }) {
-  const issues = data.entries.filter((e) => isIssue(e) && e.at >= startOfDay(now) - 6 * DAY_MS);
-  const sum = expedienteSummary(data.entries, now);
-  const noVaccine = !sum.vaccine;
-
+function Salud() {
   return (
     <>
       <T.Muted style={{ fontSize: 13 }}>La app guarda lo que anotas; el diagnóstico siempre es del veterinario.</T.Muted>
-      <Pressable
-        accessibilityLabel="Abrir el expediente"
-        onPress={() => router.push('/expediente')}
-        style={[s.expediente, noVaccine && { borderWidth: 2, borderColor: colors.lost }]}
-      >
-        <View style={{ flex: 1, gap: 4 }}>
-          <T.Black>Expediente de {data.pet!.name}</T.Black>
-          <T.Body style={noVaccine ? { color: colors.lostText } : undefined}>
-            {sum.vaccine ? `💉 Última vacuna: ${entryTitle(sum.vaccine).replace('Vacuna · ', '')} · ${formatDate(sum.vaccine.at)}` : '💉 Sin vacunas anotadas'}
-          </T.Body>
-          {sum.treatments.map((t) => (
-            <T.Body key={t.id}>💊 En tratamiento: {entryTitle(t)}</T.Body>
-          ))}
-          {sum.nextVisit ? <T.Body>🩺 Próxima cita: {formatDate(sum.nextVisit)}</T.Body> : null}
-          <T.Muted style={{ fontSize: 13 }}>Consultas, vacunas, tratamientos y documentos</T.Muted>
-        </View>
+      <Pressable accessibilityLabel="Abrir el expediente" onPress={() => router.push('/expediente')} style={s.expediente}>
+        <T.Black style={{ flex: 1 }}>Expediente</T.Black>
         <Icon name="chevronRight" size={20} color={colors.textMuted} />
       </Pressable>
-      <HealthSection
-        icon="sintoma"
-        title="Novedades o comportamiento inusual"
-        empty="Deposiciones, vómito, babeo, cojera, lesiones y más."
-        kinds={['novedad', 'deposicion', 'enfermedad', 'lesion']}
-        addKind="novedad"
-        data={data}
-        alert={issues.length > 0}
-      />
+      <Pressable accessibilityLabel="Abrir novedades" onPress={() => router.push('/novedades')} style={s.expediente}>
+        <T.Black style={{ flex: 1 }}>Novedades o comportamiento inusual</T.Black>
+        <Icon name="chevronRight" size={20} color={colors.textMuted} />
+      </Pressable>
     </>
   );
 }

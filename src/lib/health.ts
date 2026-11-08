@@ -35,8 +35,6 @@ export const MEDICAMENTO_FIELDS: Field[] = [
   { key: 'ingredientes', label: 'Ingredientes o principio activo', placeholder: 'Lo que dice la caja', multiline: true },
   { key: 'funciones', label: 'Para qué sirve', placeholder: 'Funciones o indicaciones', multiline: true, lookup: true },
   { key: 'contraindicaciones', label: 'Contraindicaciones', placeholder: 'Cuándo no darlo', multiline: true, lookup: true },
-  { key: 'presentacion', label: 'Presentación', placeholder: 'Tabletas, gotas, jarabe, inyección' },
-  { key: 'receto', label: 'Quién lo recetó', placeholder: 'Veterinaria o doctor' },
   { key: 'nota', label: 'Notas', placeholder: 'Darlo con comida, reacciones…', multiline: true },
 ];
 
@@ -61,14 +59,13 @@ export const ALIMENTO_FIELDS: Field[] = [
 export type FichaKind = 'vacuna' | 'medicamento' | 'alimento';
 
 // Cómo se ve cada ficha con fotos y vista previa.
-export const FICHAS: Record<FichaKind, { fields: Field[]; dateKey: string; newTitle: string; what: string; photosTitle: string; sides: string[] }> = {
+export const FICHAS: Record<FichaKind, { fields: Field[]; dateKey: string; newTitle: string; what: string; photosTitle: string }> = {
   vacuna: {
     fields: VACUNA_FIELDS,
     dateKey: 'fecha',
     newTitle: 'Nueva vacuna',
     what: 'Vacuna',
     photosTitle: 'Fotos del carnet de vacunación',
-    sides: ['Frente del carnet', 'Reverso del carnet'],
   },
   medicamento: {
     fields: MEDICAMENTO_FIELDS,
@@ -76,7 +73,6 @@ export const FICHAS: Record<FichaKind, { fields: Field[]; dateKey: string; newTi
     newTitle: 'Nuevo tratamiento',
     what: 'Tratamiento',
     photosTitle: 'Fotos de la caja o el frasco',
-    sides: ['Frente de la caja', 'Reverso de la caja'],
   },
   alimento: {
     fields: ALIMENTO_FIELDS,
@@ -84,7 +80,6 @@ export const FICHAS: Record<FichaKind, { fields: Field[]; dateKey: string; newTi
     newTitle: 'Alimento nuevo',
     what: 'Alimento',
     photosTitle: 'Fotos de la bolsa o la lata',
-    sides: ['Frente del empaque', 'Reverso del empaque'],
   },
 };
 

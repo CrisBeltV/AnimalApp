@@ -47,6 +47,7 @@ type Store = {
   removeEntry: (id: string) => void;
   addReminders: (reminders: Omit<Reminder, 'id'>[]) => void;
   removeReminder: (id: string) => void;
+  saveReminder: (reminder: Omit<Reminder, 'id'> & { id?: string }) => string;
   saveVet: (vet: Omit<Vet, 'id'> & { id?: string }) => string;
   savePark: (park: Omit<Park, 'id'> & { id?: string }) => string;
   removePark: (id: string) => void;
@@ -288,6 +289,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             ...list.map((r, i) => ({ ...r, id: `rec-${Date.now()}-${i}` })),
           ].sort((a, b) => a.at - b.at),
         })),
+      saveReminder: (reminder) => {
+        const id = reminder.id ?? `rec-${Date.now()}`;
+        change((d) => {
+          cancel(d.reminders.find((r) => r.id === id)?.notificationId);
+          return { ...d, reminders: [...d.reminders.filter((r) => r.id !== id), { ...reminder, id }].sort((x, y) => x.at - y.at) };
+        });
+        return id;
+      },
       removeReminder: (id) =>
         change((d) => {
           cancel(d.reminders.find((r) => r.id === id)?.notificationId);

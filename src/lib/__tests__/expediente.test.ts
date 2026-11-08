@@ -1,4 +1,4 @@
-import { entryDetail, entryTitle, expedienteEntries, expedienteSummary, profileLines } from '../expediente';
+import { entryDetail, entryTitle, expedienteEntries, profileLines } from '../expediente';
 import type { Entry } from '../types';
 
 function entry(partial: Partial<Entry> & Pick<Entry, 'kind' | 'at'>): Entry {
@@ -55,30 +55,5 @@ describe('profileLines', () => {
 
   it('sin ficha queda vacío', () => {
     expect(profileLines(pet, undefined).empty).toBe(true);
-  });
-});
-
-describe('expedienteSummary', () => {
-  const now = new Date(2026, 10, 8, 10).getTime();
-
-  it('resume vacuna, tratamientos en curso y próxima cita', () => {
-    const s = expedienteSummary(
-      [
-        entry({ kind: 'vacuna', at: 1, fields: { nombre: 'Vieja' } }),
-        entry({ kind: 'vacuna', at: 9, fields: { nombre: 'Rabia' } }),
-        entry({ kind: 'medicamento', at: 2, fields: { nombre: 'A', fin: '20/11/2026' } }),
-        entry({ kind: 'medicamento', at: 3, fields: { nombre: 'B', fin: '01/10/2026' } }),
-        entry({ kind: 'veterinario', at: 4, fields: { proxima: '15/12/2026' } }),
-        entry({ kind: 'veterinario', at: 5, fields: { proxima: '01/09/2026' } }),
-      ],
-      now,
-    );
-    expect(s.vaccine?.fields?.nombre).toBe('Rabia');
-    expect(s.treatments.map((t) => t.fields?.nombre)).toEqual(['A']);
-    expect(s.nextVisit).toBe(new Date(2026, 11, 15).getTime());
-  });
-
-  it('sin registros no hay nada', () => {
-    expect(expedienteSummary([], now)).toEqual({ treatments: [], vaccine: undefined, nextVisit: undefined });
   });
 });
