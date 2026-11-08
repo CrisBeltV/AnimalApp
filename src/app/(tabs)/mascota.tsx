@@ -468,11 +468,11 @@ function Salud() {
     <>
       <T.Muted style={{ fontSize: 13 }}>La app guarda lo que anotas; el diagnóstico siempre es del veterinario.</T.Muted>
       <Pressable accessibilityLabel="Abrir el expediente" onPress={() => router.push('/expediente')} style={s.expediente}>
-        <T.Display style={{ flex: 1, fontSize: 21 }}>Expediente</T.Display>
+        <T.Body style={{ flex: 1, fontSize: 21 }}>📋  Expediente</T.Body>
         <Icon name="chevronRight" size={22} color={colors.accent} strokeWidth={2.4} />
       </Pressable>
       <Pressable accessibilityLabel="Abrir novedades" onPress={() => router.push('/novedades')} style={s.expediente}>
-        <T.Display style={{ flex: 1, fontSize: 21 }}>Novedades o comportamiento inusual</T.Display>
+        <T.Body style={{ flex: 1, fontSize: 21 }}>⚠️  Novedades</T.Body>
         <Icon name="chevronRight" size={22} color={colors.accent} strokeWidth={2.4} />
       </Pressable>
     </>
