@@ -36,7 +36,7 @@ const NUMBER: Partial<Record<EntryKind, { label: string; placeholder: string }>>
 };
 
 // Vacuna, medicamento, veterinario y novedades tienen su propia ventana (ver lib/routes).
-const OWN_SCREEN: EntryKind[] = ['vacuna', 'medicamento', 'veterinario', 'novedad', 'deposicion', 'enfermedad', 'lesion', 'paseo', 'peso', 'alimento', 'higiene', 'foto', 'animo', 'comida'];
+const OWN_SCREEN: EntryKind[] = ['vacuna', 'medicamento', 'veterinario', 'documento', 'novedad', 'deposicion', 'enfermedad', 'lesion', 'paseo', 'peso', 'alimento', 'higiene', 'foto', 'animo', 'comida'];
 
 const NOTE_HINT: Partial<Record<EntryKind, string>> = {
   comida: '150 g de concentrado',

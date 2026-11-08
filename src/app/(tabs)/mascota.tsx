@@ -511,6 +511,14 @@ function Salud({ data, now }: { data: AppData; now: number }) {
   return (
     <>
       <Intro title="Salud" text="Vacunas, medicinas, citas y novedades. Toca un registro para editarlo. La app guarda los datos; el diagnóstico siempre es del veterinario." />
+      <Pressable accessibilityLabel="Abrir el expediente" onPress={() => router.push('/expediente')} style={s.expediente}>
+        <Text style={{ fontSize: 28 }}>📋</Text>
+        <View style={{ flex: 1 }}>
+          <T.Black>Expediente de {data.pet!.name}</T.Black>
+          <T.Muted style={{ fontSize: 13 }}>Consultas, vacunas, tratamientos y documentos</T.Muted>
+        </View>
+        <Icon name="chevronRight" size={20} color={colors.textMuted} />
+      </Pressable>
       {upcoming.length > 0 && (
         <Card style={{ gap: 8, backgroundColor: colors.lilacSoft }}>
           <T.Black>Próximos recordatorios</T.Black>
@@ -529,7 +537,7 @@ function Salud({ data, now }: { data: AppData; now: number }) {
         </Card>
       )}
       <HealthSection icon="vacuna" title="Vacunas" empty="Sin vacunas anotadas. Toma foto del carnet o escribe los datos." kinds={['vacuna']} addKind="vacuna" data={data} alert={!data.entries.some((e) => e.kind === 'vacuna')} />
-      <HealthSection icon="medicamento" title="Medicamentos" empty="Desparasitantes, pastillas, gotas. Toma foto de la caja." kinds={['medicamento']} addKind="medicamento" data={data} />
+      <HealthSection icon="medicamento" title="Tratamientos" empty="Medicinas, desparasitantes, pastillas, gotas. Toma foto de la caja." kinds={['medicamento']} addKind="medicamento" data={data} />
       <HealthSection icon="cita" title="Veterinario" empty="Anota cada cita y guarda tu veterinaria de confianza." kinds={['veterinario']} addKind="veterinario" data={data} />
       <HealthSection
         icon="sintoma"
@@ -696,6 +704,7 @@ function Timeline({ data, now }: { data: AppData; now: number }) {
 }
 
 const s = StyleSheet.create({
+  expediente: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 20, backgroundColor: colors.blue },
   page: { paddingHorizontal: 16, paddingBottom: 140, gap: 14, width: '100%', maxWidth: 560, alignSelf: 'center' },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   filters: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: colors.card, borderRadius: 22, padding: 6 },

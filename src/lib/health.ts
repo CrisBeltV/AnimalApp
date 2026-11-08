@@ -73,8 +73,8 @@ export const FICHAS: Record<FichaKind, { fields: Field[]; dateKey: string; newTi
   medicamento: {
     fields: MEDICAMENTO_FIELDS,
     dateKey: 'inicio',
-    newTitle: 'Nuevo medicamento',
-    what: 'Medicamento',
+    newTitle: 'Nuevo tratamiento',
+    what: 'Tratamiento',
     photosTitle: 'Fotos de la caja o el frasco',
     sides: ['Frente de la caja', 'Reverso de la caja'],
   },

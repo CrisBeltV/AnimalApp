@@ -137,7 +137,7 @@ export function MenuRow({
   );
 }
 
-export function BackHeader({ title, subtitle, onBack }: { title: string; subtitle?: string; onBack?: () => void }) {
+export function BackHeader({ title, subtitle, onBack, right }: { title: string; subtitle?: string; onBack?: () => void; right?: ReactNode }) {
   const insets = useSafeAreaInsets();
   return (
     <View style={[styles.backHeader, { paddingTop: insets.top + 12 }]}>
@@ -154,6 +154,7 @@ export function BackHeader({ title, subtitle, onBack }: { title: string; subtitl
         </T.Display>
         {subtitle ? <T.Muted>{subtitle}</T.Muted> : null}
       </View>
+      {right}
     </View>
   );
 }

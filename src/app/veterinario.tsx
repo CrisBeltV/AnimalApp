@@ -2,11 +2,12 @@ import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
-import { DeleteEntry, Input, ReminderSheet, finish } from '../components/form';
+import { Chips, DeleteEntry, Input, ReminderSheet, finish } from '../components/form';
 import type { RemindTarget } from '../components/form';
 import { Files } from '../components/Files';
 import { Icon } from '../components/Icon';
 import { BackHeader, Button, Card, T } from '../components/ui';
+import { CONSULT_TYPES } from '../lib/expediente';
 import { deleteFiles } from '../lib/files';
 import { formatDate, parseDate } from '../lib/health';
 import type { Field } from '../lib/health';
@@ -159,6 +160,7 @@ export default function Veterinario() {
           />
         )}
         <T.Black style={{ color: colors.textMuted, marginTop: 6 }}>La cita</T.Black>
+        <Chips options={CONSULT_TYPES} value={values.tipo} onChange={set('tipo')} />
         {VISIT_FIELDS.map((f) => (
           <Input key={f.key} field={f} value={values[f.key] ?? ''} onChange={set(f.key)} />
         ))}

@@ -17,6 +17,7 @@ export type EntryKind =
   | 'medicamento'
   | 'vacuna'
   | 'veterinario'
+  | 'documento'
   | 'enfermedad'
   | 'lesion'
   | 'novedad'
