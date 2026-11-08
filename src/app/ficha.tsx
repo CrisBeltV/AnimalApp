@@ -4,12 +4,15 @@ import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { DeleteEntry, Input, PhotoSet, ProviderPicker, ReminderSheet, finish } from '../components/form';
 import type { RemindTarget } from '../components/form';
+import { Files } from '../components/Files';
 import { BackHeader, Button, Card, T, soon } from '../components/ui';
 import { KIND_INFO } from '../lib/game';
+import { deleteFiles } from '../lib/files';
 import { FICHAS, fichaKind, formatDate, parseDate } from '../lib/health';
 import { foodStatus } from '../lib/game';
 import { useStore } from '../lib/store';
 import { colors } from '../lib/theme';
+import type { Attachment } from '../lib/types';
 
 // Ficha de vacuna o medicamento: fotos por ambos lados, datos separados,
 // vista previa antes de guardar y recordatorios al final.
@@ -31,6 +34,7 @@ export default function Ficha() {
     return food ? { comidasDia: '2' } : {};
   });
   const [photos, setPhotos] = useState<string[]>(editing?.photos ?? []);
+  const [files, setFiles] = useState<Attachment[]>(editing?.files ?? []);
   const [step, setStep] = useState<'datos' | 'revisar'>('datos');
   const [savedId, setSavedId] = useState<string | null>(null);
   const [targets, setTargets] = useState<RemindTarget[]>([]);
@@ -48,10 +52,11 @@ export default function Ficha() {
     const day = parseDate(val(ficha.dateKey)) ?? Date.now();
     const sameDay = new Date(day).toDateString() === new Date().toDateString();
     const at = sameDay ? Date.now() : day + 12 * 3600000;
-    const entry = { fields: clean, photos: photos.filter(Boolean), note: clean.nombre, at };
+    const entry = { fields: clean, photos: photos.filter(Boolean), files, note: clean.nombre, at };
     let id: string;
     if (editing) {
       updateEntry(editing.id, entry);
+      deleteFiles((editing.files ?? []).filter((f) => !files.some((x) => x.id === f.id)));
       id = editing.id;
     } else {
       id = addEntry({ kind, ...entry });
@@ -140,6 +145,13 @@ export default function Ficha() {
           <PhotoSet photos={photos} onChange={setPhotos} sides={ficha.sides} />
           <Button label="Leer los datos de las fotos" kind="secondary" disabled={!photos.some(Boolean)} onPress={reading} />
         </Card>
+
+        {!food && (
+          <Card style={{ gap: 10 }}>
+            <T.Black>Documentos</T.Black>
+            <Files files={files} onChange={setFiles} />
+          </Card>
+        )}
 
         <T.Muted>Escribe los datos. Los marcados con * son necesarios.</T.Muted>
         {fields.map((f, i) => (

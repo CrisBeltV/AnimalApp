@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { ReactNode } from 'react';
 
 import { useAuth } from './auth';
+import { deleteFiles } from './files';
 import { closeCloudReport, fetchReports, publishReport, pullData, pushData } from './cloud';
 
 import { KIND_INFO, NEW_PARK_XP, newlyUnlocked, walkXp } from './game';
@@ -271,6 +272,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       removeEntry: (id) =>
         change((d) => {
           d.reminders.filter((r) => r.entryId === id).forEach((r) => cancel(r.notificationId));
+          deleteFiles(d.entries.find((e) => e.id === id)?.files);
           return {
             ...d,
             entries: d.entries.filter((e) => e.id !== id),

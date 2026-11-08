@@ -26,6 +26,15 @@ export type EntryKind =
   | 'animo'
   | 'nota';
 
+// Documento adjunto a un registro: foto (JPEG) o PDF. La foto se achica al subirla; el PDF se guarda tal cual.
+export type Attachment = {
+  id: string;
+  uri: string;
+  type: 'image' | 'pdf';
+  name: string;
+  size?: number; // bytes
+};
+
 export type Entry = {
   id: string;
   kind: EntryKind;
@@ -39,6 +48,8 @@ export type Entry = {
   fields?: Record<string, string>;
   // Fotos del carnet o de la caja (frente y reverso).
   photos?: string[];
+  // Documentos del expediente: fórmulas, radiografías, exámenes (foto o PDF).
+  files?: Attachment[];
   // Novedades o comportamiento inusual marcados.
   signs?: string[];
 };

@@ -4,13 +4,15 @@ import { Linking, Pressable, ScrollView, StyleSheet, TextInput, View } from 'rea
 
 import { DeleteEntry, Input, ReminderSheet, finish } from '../components/form';
 import type { RemindTarget } from '../components/form';
+import { Files } from '../components/Files';
 import { Icon } from '../components/Icon';
 import { BackHeader, Button, Card, T } from '../components/ui';
+import { deleteFiles } from '../lib/files';
 import { formatDate, parseDate } from '../lib/health';
 import type { Field } from '../lib/health';
 import { useStore } from '../lib/store';
 import { colors, fonts, radius } from '../lib/theme';
-import type { Vet } from '../lib/types';
+import type { Attachment, Vet } from '../lib/types';
 
 const VET_FIELDS: Field[] = [
   { key: 'veterinaria', label: 'Nombre de la veterinaria', placeholder: 'Clínica Veterinaria…', required: true },
@@ -46,6 +48,7 @@ export default function Veterinario() {
     if (editing) return { nota: editing.note ?? '', fecha: formatDate(editing.at) };
     return { fecha: formatDate(Date.now()) };
   });
+  const [files, setFiles] = useState<Attachment[]>(editing?.files ?? []);
   const [vetId, setVetId] = useState<string | undefined>(editing?.fields?.vetId);
   const [query, setQuery] = useState('');
   const [savedId, setSavedId] = useState<string | null>(null);
@@ -92,10 +95,11 @@ export default function Veterinario() {
     const note = [clean.veterinaria, clean.doctor, clean.motivo].filter(Boolean).join(' · ');
     let entryId: string;
     if (editing) {
-      updateEntry(editing.id, { fields: clean, note, at });
+      updateEntry(editing.id, { fields: clean, note, at, files });
+      deleteFiles((editing.files ?? []).filter((f) => !files.some((x) => x.id === f.id)));
       entryId = editing.id;
     } else {
-      entryId = addEntry({ kind: 'veterinario', fields: clean, note, at });
+      entryId = addEntry({ kind: 'veterinario', fields: clean, note, at, files });
     }
     const next = parseDate(clean.proxima);
     if (next && next > Date.now() && !data.reminders.some((r) => r.entryId === entryId)) {
@@ -158,6 +162,8 @@ export default function Veterinario() {
         {VISIT_FIELDS.map((f) => (
           <Input key={f.key} field={f} value={values[f.key] ?? ''} onChange={set(f.key)} />
         ))}
+        <T.Black style={{ color: colors.textMuted, marginTop: 6 }}>Documentos</T.Black>
+        <Files files={files} onChange={setFiles} />
         <Button label={editing ? 'Guardar cambios' : 'Guardar cita'} kind="solid" disabled={invalid} onPress={save} />
         {editing && <DeleteEntry onDelete={() => (removeEntry(editing.id), finish())} />}
       </ScrollView>
