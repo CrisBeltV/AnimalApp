@@ -1,4 +1,4 @@
-import { entryDetail, entryTitle, expedienteEntries } from '../expediente';
+import { entryDetail, entryTitle, expedienteEntries, profileLines } from '../expediente';
 import type { Entry } from '../types';
 
 function entry(partial: Partial<Entry> & Pick<Entry, 'kind' | 'at'>): Entry {
@@ -40,5 +40,20 @@ describe('expediente', () => {
       '1 tableta · cada 8 h · hasta 10/12/2026',
     );
     expect(entryDetail(entry({ kind: 'vacuna', at: 1 }))).toBe('');
+  });
+});
+
+describe('profileLines', () => {
+  const pet = { name: 'Luna', species: 'perro' as const, breed: 'Criollo', createdAt: 0 };
+
+  it('arma el resumen con lo que haya', () => {
+    const p = profileLines(pet, { sex: 'hembra', neutered: 'si', microchip: '9810', allergies: 'Pollo' }, 12.44);
+    expect(p.basics).toBe('Perro · Criollo · Hembra · Esterilizada · 12,4 kg · Chip 9810');
+    expect(p.allergies).toBe('Pollo');
+    expect(p.empty).toBe(false);
+  });
+
+  it('sin ficha queda vacío', () => {
+    expect(profileLines(pet, undefined).empty).toBe(true);
   });
 });

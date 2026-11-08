@@ -187,9 +187,20 @@ export type Settings = {
   notifIds: Record<string, string>; // aviso agendado por horario
 };
 
+// Ficha clínica fija de la mascota: lo que cualquier veterinaria pregunta primero.
+export type ClinicalProfile = {
+  sex?: 'hembra' | 'macho';
+  neutered?: 'si' | 'no';
+  microchip?: string;
+  marks?: string; // color y señas particulares
+  allergies?: string;
+  conditions?: string; // condiciones crónicas
+};
+
 export type AppData = {
   ownerName: string;
   pet: Pet | null;
+  clinical?: ClinicalProfile;
   entries: Entry[];
   reports: Report[];
   activeWalkStart: number | null;

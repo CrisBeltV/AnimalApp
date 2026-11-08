@@ -1,5 +1,5 @@
 import { formatDate } from './health';
-import type { Entry } from './types';
+import type { ClinicalProfile, Entry, Pet } from './types';
 
 // El expediente junta lo que tiene una historia clínica veterinaria: consultas, vacunas,
 // tratamientos y documentos (radiografías, exámenes, fórmulas). Lo demás es cuidado diario.
@@ -85,3 +85,28 @@ export function entryDetail(e: Entry): string {
 }
 
 export const entryDay = (e: Entry) => formatDate(e.at);
+
+export type ProfileLines = { basics: string; allergies?: string; conditions?: string; empty: boolean };
+
+// Resumen de la ficha clínica para el encabezado del expediente y para el PDF.
+export function profileLines(pet: Pet, clinical: ClinicalProfile | undefined, weight?: number): ProfileLines {
+  const c = clinical ?? {};
+  const neutered = c.neutered === 'si' ? (c.sex === 'macho' ? 'Esterilizado' : 'Esterilizada') : c.neutered === 'no' ? 'Sin esterilizar' : '';
+  const basics = [
+    pet.species === 'gato' ? 'Gato' : 'Perro',
+    pet.breed,
+    c.sex === 'hembra' ? 'Hembra' : c.sex === 'macho' ? 'Macho' : '',
+    neutered,
+    weight ? `${String(Math.round(weight * 10) / 10).replace('.', ',')} kg` : '',
+    c.microchip ? `Chip ${c.microchip}` : '',
+    c.marks,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+  return {
+    basics,
+    allergies: c.allergies || undefined,
+    conditions: c.conditions || undefined,
+    empty: !c.sex && !c.neutered && !c.microchip && !c.marks && !c.allergies && !c.conditions,
+  };
+}

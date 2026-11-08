@@ -12,7 +12,7 @@ import { emptyData } from './types';
 import { cancel } from './notify';
 import { sampleReports } from './samples';
 import { posted, spot } from './reports';
-import type { AppData, Entry, Park, Pet, Provider, Reminder, Report, Settings, Sighting, Vet, WalkGoal, WalkRoutine } from './types';
+import type { AppData, ClinicalProfile, Entry, Park, Pet, Provider, Reminder, Report, Settings, Sighting, Vet, WalkGoal, WalkRoutine } from './types';
 
 // Los datos viven en el teléfono y, si el dueño entró con su cuenta,
 // también en la nube (Supabase), para no perderlos al cambiar de teléfono.
@@ -53,6 +53,7 @@ type Store = {
   saveRoutine: (routine: Omit<WalkRoutine, 'id'> & { id?: string }) => string;
   saveProvider: (provider: Omit<Provider, 'id'> & { id?: string }) => string;
   setSettings: (patch: Partial<Settings>) => void;
+  setClinical: (clinical: ClinicalProfile) => void;
   startWalk: (goal?: WalkGoal) => void;
   finishWalk: () => { minutes: number; id: string };
   cancelWalk: () => void;
@@ -313,6 +314,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         change((d) => ({ ...d, providers: [{ ...provider, id }, ...d.providers.filter((p) => p.id !== id)] }));
         return id;
       },
+      setClinical: (clinical) => change((d) => ({ ...d, clinical })),
       setSettings: (patch) => change((d) => ({ ...d, settings: { ...d.settings, ...patch } })),
       startWalk: (goal) => change((d) => ({ ...d, activeWalkStart: Date.now(), walkGoal: goal ?? { tipo: 'paseo' } })),
       finishWalk: () => {
