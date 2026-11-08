@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { PetDrawing } from '../components/PetDrawing';
 import { BackHeader, Button, Card, T, soon } from '../components/ui';
@@ -7,6 +7,7 @@ import { HELPERS_YEAR, REUNIONS_YEAR, REUNITED } from '../lib/reports';
 import { STORIES } from '../lib/samples';
 import { useStore } from '../lib/store';
 import { colors, fonts, softShadow } from '../lib/theme';
+import { Text } from '../components/Text';
 
 const ALLIES = [
   { icon: '🩺', name: 'Veterinaria aliada', detail: '10 % en consulta desde nivel 5' },

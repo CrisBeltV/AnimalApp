@@ -1,8 +1,9 @@
-import { Modal, StyleSheet, Text, View } from 'react-native';
+import { Modal, StyleSheet, View } from 'react-native';
 
 import { useStore } from '../lib/store';
 import { colors, radius } from '../lib/theme';
 import { Button } from './ui';
+import { Text } from './Text';
 
 // Aparece cuando la mascota gana un logro nuevo.
 export function CelebrateModal() {

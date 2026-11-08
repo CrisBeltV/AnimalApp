@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Check, Chips, PhotoSet } from '../components/form';
 import { BackHeader, Button, Card, T } from '../components/ui';
@@ -9,6 +9,7 @@ import { KINDS, SIZES } from '../lib/reports';
 import { useStore } from '../lib/store';
 import { colors, fonts, radius } from '../lib/theme';
 import type { AdoptionInfo, Species } from '../lib/types';
+import { TextInput } from '../components/Text';
 
 // Buscarle un hogar: dar en adopción (sin costo) o pedir un hogar temporal.
 export default function Adopcion() {

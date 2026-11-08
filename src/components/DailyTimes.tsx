@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { cancel, canNotify, scheduleDaily } from '../lib/notify';
 import { useStore } from '../lib/store';
 import { colors, fonts, radius } from '../lib/theme';
 import { Check, parseTime } from './form';
 import { Button, T } from './ui';
+import { Text, TextInput } from './Text';
 
 const two = (n: number) => String(n).padStart(2, '0');
 
@@ -86,7 +87,9 @@ export function MealTimes() {
   const { mealTimes, notifIds } = data.settings;
   const names = data.settings.mealNames ?? {};
   const off = data.settings.mealOff ?? [];
+  // manage: el ícono de la esquina activa el modo de cambiar horarios.
   // editing: horario que se está cambiando ('' = uno nuevo).
+  const [manage, setManage] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   const [picking, setPicking] = useState('07:00');
   const [name, setName] = useState('');
@@ -158,26 +161,35 @@ export function MealTimes() {
 
   return (
     <View style={{ gap: 10 }}>
+      <View style={s.head}>
+        <T.Black>Horarios de comida</T.Black>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={manage ? 'Terminar de editar horarios' : 'Editar horarios de comida'}
+          onPress={() => (setManage(!manage), setEditing(null))}
+          style={[s.corner, manage && { backgroundColor: colors.accent }]}
+        >
+          <T.Black style={{ fontSize: 15, color: manage ? '#FFFFFF' : colors.accent }}>{manage ? '✓' : '✎'}</T.Black>
+        </Pressable>
+      </View>
       {mealTimes.length === 0 ? <T.Muted style={{ fontSize: 13 }}>Aún no hay horarios.</T.Muted> : null}
       {mealTimes.map((m) =>
         editing === m ? (
           <View key={m}>{editor}</View>
         ) : (
-          <View key={m} style={s.mealRow}>
+          <Pressable key={m} disabled={!manage} accessibilityLabel={manage ? `Cambiar horario ${time12(m)}` : undefined} onPress={() => open(m)} style={s.mealRow}>
             <View style={{ flex: 1 }}>
-              <T.Black style={{ fontSize: 16 }}>
+              <T.Black style={{ fontSize: 15 }}>
                 {time12(m)}
                 {names[m] ? ` · ${names[m]}` : ''}
               </T.Black>
-              <T.Muted style={{ fontSize: 12 }}>{off.includes(m) ? '🔕 Aviso apagado' : '🔔 Aviso todos los días'}</T.Muted>
+              <T.Muted style={{ fontSize: 11 }}>{off.includes(m) ? '🔕 Aviso apagado' : '🔔 Aviso todos los días'}</T.Muted>
             </View>
-            <Pressable accessibilityLabel={`Editar recordatorio ${time12(m)}`} onPress={() => open(m)} style={s.editBtn}>
-              <T.Black style={{ fontSize: 14, color: colors.accent }}>✎ Editar</T.Black>
-            </Pressable>
-          </View>
+            {manage ? <T.Black style={{ fontSize: 18, color: colors.accent }}>›</T.Black> : null}
+          </Pressable>
         ),
       )}
-      {editing === '' ? editor : editing === null ? <Button label="+ Añadir horario" onPress={() => open('')} /> : null}
+      {editing === '' ? editor : manage && editing === null ? <Button label="+ Añadir horario" onPress={() => open('')} /> : null}
       {!canNotify && <T.Muted style={{ fontSize: 12 }}>En el teléfono te llegará un aviso a cada hora.</T.Muted>}
     </View>
   );
@@ -237,8 +249,9 @@ const s = StyleSheet.create({
   },
   on: { backgroundColor: colors.blue, borderColor: colors.accent },
   editing: { backgroundColor: colors.lilacSoft, borderColor: colors.lilacStrong },
-  mealRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: radius.md, backgroundColor: colors.blue },
-  editBtn: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: radius.pill, backgroundColor: '#FFFFFF' },
+  mealRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.grey },
+  head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  corner: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.blue, alignItems: 'center', justifyContent: 'center' },
   nameInput: {
     minHeight: 46,
     backgroundColor: '#FFFFFF',

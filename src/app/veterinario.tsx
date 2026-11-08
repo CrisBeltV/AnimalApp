@@ -1,19 +1,17 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import { Chips, DeleteEntry, Input, ReminderSheet, finish } from '../components/form';
+import { DeleteEntry, Input, ReminderSheet, finish } from '../components/form';
 import type { RemindTarget } from '../components/form';
-import { Files } from '../components/Files';
 import { Icon } from '../components/Icon';
 import { BackHeader, Button, Card, T } from '../components/ui';
-import { CONSULT_TYPES, typeLabel } from '../lib/expediente';
-import { deleteFiles } from '../lib/files';
 import { formatDate, parseDate } from '../lib/health';
 import type { Field } from '../lib/health';
 import { useStore } from '../lib/store';
 import { colors, fonts, radius } from '../lib/theme';
-import type { Attachment, Vet } from '../lib/types';
+import type { Vet } from '../lib/types';
+import { TextInput } from '../components/Text';
 
 const VET_FIELDS: Field[] = [
   { key: 'veterinaria', label: 'Nombre de la veterinaria', placeholder: 'Clínica Veterinaria…', required: true },
@@ -25,6 +23,7 @@ const VET_FIELDS: Field[] = [
 
 const VISIT_FIELDS: Field[] = [
   { key: 'fecha', label: 'Fecha de la cita', placeholder: 'DD/MM/AAAA', required: true, date: true },
+  { key: 'motivo', label: 'Motivo de la cita', placeholder: 'Control, vacuna, malestar…' },
   { key: 'proxima', label: 'Próxima cita', placeholder: 'DD/MM/AAAA', date: true, remind: 'Próxima cita' },
   { key: 'nota', label: 'Lo que dijo el veterinario', placeholder: 'Diagnóstico, indicaciones…', multiline: true },
 ];
@@ -48,7 +47,6 @@ export default function Veterinario() {
     if (editing) return { nota: editing.note ?? '', fecha: formatDate(editing.at) };
     return { fecha: formatDate(Date.now()) };
   });
-  const [files, setFiles] = useState<Attachment[]>(editing?.files ?? []);
   const [vetId, setVetId] = useState<string | undefined>(editing?.fields?.vetId);
   const [query, setQuery] = useState('');
   const [savedId, setSavedId] = useState<string | null>(null);
@@ -60,9 +58,7 @@ export default function Veterinario() {
   };
   const val = (k: string) => (values[k] ?? '').trim();
   const all = [...VET_FIELDS, ...VISIT_FIELDS];
-  const invalid =
-    all.some((f) => (f.required && !val(f.key)) || (f.date && val(f.key) && parseDate(val(f.key)) === null)) ||
-    (values.tipo === 'otro' && !val('tipoOtro'));
+  const invalid = all.some((f) => (f.required && !val(f.key)) || (f.date && val(f.key) && parseDate(val(f.key)) === null));
 
   const q = query.trim().toLowerCase();
   const results = q ? data.vets.filter((v) => v.name.toLowerCase().includes(q)) : [];
@@ -91,17 +87,16 @@ export default function Veterinario() {
     };
     const same = data.vets.find((v) => v.name.toLowerCase() === vet.name.toLowerCase());
     const id = saveVet({ ...vet, id: vet.id ?? same?.id });
-    const clean = Object.fromEntries(Object.entries({ ...values, vetId: id }).map(([k, v]) => [k, v.trim()]).filter(([k, v]) => v && !(k === 'tipoOtro' && values.tipo !== 'otro')));
+    const clean = Object.fromEntries(Object.entries({ ...values, vetId: id }).map(([k, v]) => [k, v.trim()]).filter(([, v]) => v));
     const day = parseDate(clean.fecha) ?? Date.now();
     const at = new Date(day).toDateString() === new Date().toDateString() ? Date.now() : day + 12 * 3600000;
-    const note = [clean.veterinaria, clean.doctor, typeLabel(CONSULT_TYPES, clean)].filter(Boolean).join(' · ');
+    const note = [clean.veterinaria, clean.doctor, clean.motivo].filter(Boolean).join(' · ');
     let entryId: string;
     if (editing) {
-      updateEntry(editing.id, { fields: clean, note, at, files });
-      deleteFiles((editing.files ?? []).filter((f) => !files.some((x) => x.id === f.id)));
+      updateEntry(editing.id, { fields: clean, note, at });
       entryId = editing.id;
     } else {
-      entryId = addEntry({ kind: 'veterinario', fields: clean, note, at, files });
+      entryId = addEntry({ kind: 'veterinario', fields: clean, note, at });
     }
     const next = parseDate(clean.proxima);
     if (next && next > Date.now() && !data.reminders.some((r) => r.entryId === entryId)) {
@@ -161,15 +156,9 @@ export default function Veterinario() {
           />
         )}
         <T.Black style={{ color: colors.textMuted, marginTop: 6 }}>La cita</T.Black>
-        <Chips options={CONSULT_TYPES} value={values.tipo} onChange={set('tipo')} />
-        {values.tipo === 'otro' && (
-          <Input field={{ key: 'tipoOtro', label: '¿Cuál?', placeholder: 'Esterilización, control dental…', required: true }} value={values.tipoOtro ?? ''} onChange={set('tipoOtro')} />
-        )}
         {VISIT_FIELDS.map((f) => (
           <Input key={f.key} field={f} value={values[f.key] ?? ''} onChange={set(f.key)} />
         ))}
-        <T.Black style={{ color: colors.textMuted, marginTop: 6 }}>Documentos</T.Black>
-        <Files files={files} onChange={setFiles} />
         <Button label={editing ? 'Guardar cambios' : 'Guardar cita'} kind="solid" disabled={invalid} onPress={save} />
         {editing && <DeleteEntry onDelete={() => (removeEntry(editing.id), finish())} />}
       </ScrollView>

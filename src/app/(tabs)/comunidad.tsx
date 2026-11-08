@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AccountButton } from '../../components/AccountButton';
@@ -10,6 +10,7 @@ import { RADIUS, REUNIONS_YEAR, ago, posted, kindOf, meters } from '../../lib/re
 import { useStore } from '../../lib/store';
 import { colors, fonts } from '../../lib/theme';
 import { useNow } from '../../lib/useNow';
+import { Text } from '../../components/Text';
 
 export default function Comunidad() {
   const { data, reports: allReports } = useStore();
@@ -39,40 +40,36 @@ export default function Comunidad() {
         <AccountButton />
       </View>
 
-      <View style={s.alertCard}>
-        <Pressable accessibilityLabel="Mascotas perdidas" onPress={() => router.push('/perdidas')} style={s.alertHead}>
-          <View style={s.alertIcon}>
-            <Icon name="alerta" size={20} color="#FFFFFF" strokeWidth={2.4} />
-            {near.length ? (
-              <View style={s.alertBadge}>
-                <Text style={s.alertBadgeText}>{near.length}</Text>
-              </View>
-            ) : null}
-          </View>
-          <View style={{ flex: 1 }}>
-            <T.Black>Mascotas perdidas</T.Black>
-            <T.Muted style={{ fontSize: 13 }}>
-              {near.length === 0
-                ? 'Sin reportes cerca por ahora'
-                : `${near.length} ${near.length === 1 ? 'reporte' : 'reportes'} a 2 km${latest ? ` · ${latest.petName}, ${ago(posted(latest), now).toLowerCase()}` : ''}`}
-            </T.Muted>
-          </View>
-          <Icon name="chevronRight" size={20} color={colors.textMuted} strokeWidth={2.2} />
-        </Pressable>
-        <View style={s.row}>
-          {[
-            { label: 'Crear reporte', icon: '＋', go: () => router.push('/nuevo-reporte') },
-            { label: 'Ver mapa', icon: '🗺️', go: () => router.push({ pathname: '/perdidas', params: { vista: 'mapa' } }) },
-            { label: 'Reencuentros', icon: '🏡', go: () => router.push('/reencuentros') },
-          ].map((b) => (
-            <Pressable key={b.label} accessibilityRole="button" accessibilityLabel={b.label} onPress={b.go} style={s.lostBtn}>
-              <Text style={s.lostBtnIcon}>{b.icon}</Text>
-              <T.Black style={{ fontSize: 13, textAlign: 'center' }}>{b.label}</T.Black>
-            </Pressable>
-          ))}
+      {/* Dos recuadros separados: Mascotas perdidas y Reencuentros. */}
+      <Pressable accessibilityLabel="Mascotas perdidas" onPress={() => router.push('/perdidas')} style={[s.alertCard, s.alertHead]}>
+        <View style={s.alertIcon}>
+          <Icon name="alerta" size={20} color="#FFFFFF" strokeWidth={2.4} />
+          {near.length ? (
+            <View style={s.alertBadge}>
+              <Text style={s.alertBadgeText}>{near.length}</Text>
+            </View>
+          ) : null}
         </View>
-        <T.Muted style={{ fontSize: 12, textAlign: 'center' }}>{REUNIONS_YEAR + data.reports.filter((r) => r.closed).length} reencuentros este año en Engativá</T.Muted>
-      </View>
+        <View style={{ flex: 1 }}>
+          <T.Black>Mascotas perdidas</T.Black>
+          <T.Muted style={{ fontSize: 13 }}>
+            {near.length === 0
+              ? 'Sin reportes cerca por ahora'
+              : `${near.length} ${near.length === 1 ? 'reporte' : 'reportes'} a 2 km${latest ? ` · ${latest.petName}, ${ago(posted(latest), now).toLowerCase()}` : ''}`}
+          </T.Muted>
+        </View>
+        <Icon name="chevronRight" size={20} color={colors.textMuted} strokeWidth={2.2} />
+      </Pressable>
+      <Pressable accessibilityLabel="Reencuentros" onPress={() => router.push('/reencuentros')} style={[s.alertCard, s.alertHead, { borderColor: colors.found }]}>
+        <View style={[s.alertIcon, { backgroundColor: colors.found }]}>
+          <Text style={{ fontSize: 20 }}>🏡</Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <T.Black>Reencuentros</T.Black>
+          <T.Muted style={{ fontSize: 13 }}>{REUNIONS_YEAR + data.reports.filter((r) => r.closed).length} reencuentros este año en Engativá</T.Muted>
+        </View>
+        <Icon name="chevronRight" size={20} color={colors.textMuted} strokeWidth={2.2} />
+      </Pressable>
 
       <View style={s.row}>
         <Pressable
@@ -166,19 +163,6 @@ const s = StyleSheet.create({
     borderColor: '#FFFFFF',
   },
   alertBadgeText: { color: '#FFFFFF', fontSize: 11, fontFamily: fonts.bodyBlack, fontWeight: '800' },
-  lostBtn: {
-    flex: 1,
-    minHeight: 76,
-    borderRadius: 18,
-    backgroundColor: colors.blue,
-    borderWidth: 1.5,
-    borderColor: colors.blueOutline,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    paddingHorizontal: 4,
-  },
-  lostBtnIcon: { fontSize: 22, color: colors.accent, fontWeight: '700' },
   alertIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.lost, alignItems: 'center', justifyContent: 'center' },
   row: { flexDirection: 'row', gap: 10 },
   stat: { flex: 1, backgroundColor: colors.card, borderRadius: 18, paddingVertical: 10, paddingHorizontal: 14 },

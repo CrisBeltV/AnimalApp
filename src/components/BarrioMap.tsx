@@ -1,12 +1,13 @@
 import { memo, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { PanResponder, Pressable, StyleSheet, Text, View } from 'react-native';
+import { PanResponder, Pressable, StyleSheet, View } from 'react-native';
 import type { GestureResponderEvent, LayoutChangeEvent, StyleProp, ViewStyle } from 'react-native';
 import Svg, { G, Line, Polygon, Rect } from 'react-native-svg';
 
 import { AREAS, CALLES, CARRERAS, GRID_ANGLE, MAP_LIMIT, MAX_WIDTH, MIN_WIDTH, PLACES, blocks, fromGrid, minorStreets } from '../lib/barrio';
 import type { Road } from '../lib/barrio';
 import { colors, fonts, softShadow } from '../lib/theme';
+import { Text } from './Text';
 
 // maxWidth: el pin se esconde cuando el mapa está más lejos que eso (metros de ancho).
 export type Marker = { id: string; x: number; y: number; node: ReactNode; maxWidth?: number };

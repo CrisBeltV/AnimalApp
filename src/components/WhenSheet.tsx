@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { dayText, whenText } from '../lib/reports';
 import { colors, fonts, radius, shadow } from '../lib/theme';
 import { TimePicker } from './DailyTimes';
 import { Check, parseTime } from './form';
 import { Button, T } from './ui';
+import { Text } from './Text';
+import { useWeek } from '../lib/i18n';
 
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 const DAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
@@ -41,6 +43,7 @@ export function WhenSheet({
   onDone: (v: When) => void;
   onClose: () => void;
 }) {
+  const week = useWeek();
   const [step, setStep] = useState<'dia' | 'hora'>('dia');
   const [day, setDay] = useState(midnight(value.at));
   const [time, setTime] = useState(hhmm(value.at));
@@ -156,7 +159,7 @@ export function WhenSheet({
               <View style={s.grid}>
                 {DAYS.map((d, i) => (
                   <View key={`h${i}`} style={s.cell}>
-                    <T.Muted style={{ fontSize: 12 }}>{d}</T.Muted>
+                    <T.Muted style={{ fontSize: 12 }}>{week[i]}</T.Muted>
                   </View>
                 ))}
                 {cells.map((d, i) => {

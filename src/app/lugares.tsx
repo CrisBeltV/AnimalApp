@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 
@@ -11,6 +11,7 @@ import { allParks, isDay } from '../lib/parks';
 import type { ParkInfo } from '../lib/parks';
 import { useStore } from '../lib/store';
 import { colors, fonts, radius } from '../lib/theme';
+import { Text } from '../components/Text';
 
 const DAY = { bg: '#D6EAFB', title: '#0F2540', sub: '#5B6676', card: '#FFFFFF', path: '#FFFFFF' };
 const NIGHT = { bg: '#1F2A3A', title: '#FFFFFF', sub: '#C9B6F2', card: '#2B3950', path: '#4B3A78' };

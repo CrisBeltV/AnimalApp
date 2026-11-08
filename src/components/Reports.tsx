@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Image, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, Share, StyleSheet, View } from 'react-native';
 
 import { KINDS, KIND_ORDER, ago, posted, badge, badgeColors, distanceText, initial, kindOf, meters, speciesWord, title } from '../lib/reports';
 import type { Kind } from '../lib/reports';
@@ -8,6 +8,7 @@ import { colors, fonts, softShadow } from '../lib/theme';
 import type { Report } from '../lib/types';
 import { PetDrawing } from './PetDrawing';
 import { T, soon } from './ui';
+import { Text } from './Text';
 
 // Piezas de la sección Mascotas perdidas: insignia, avatar, foto, tarjeta, filtros y pin.
 

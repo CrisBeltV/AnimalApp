@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -15,6 +15,7 @@ import { distanceText } from '../lib/reports';
 import { OwnerPill, Tiles } from './parques';
 import { useStore } from '../lib/store';
 import { colors, fonts } from '../lib/theme';
+import { Text } from '../components/Text';
 
 // Ficha del parque: la isla, cuánto falta para conquistarlo, tu historia aquí, lo que tiene y tu calificación.
 export default function Parque() {

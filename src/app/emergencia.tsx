@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { PhotoSet } from '../components/form';
 import { BackHeader, Button, Card, T, soon } from '../components/ui';
@@ -9,6 +9,7 @@ import { KINDS, SITUATIONS } from '../lib/reports';
 import { useStore } from '../lib/store';
 import { colors, fonts, radius } from '../lib/theme';
 import type { Species } from '../lib/types';
+import { TextInput } from '../components/Text';
 
 const tint = KINDS.emergencia;
 
@@ -27,7 +28,6 @@ export default function Emergencia() {
   const [useMine, setUseMine] = useState(true);
   const [place, setPlace] = useState('');
   const [note, setNote] = useState('');
-  const [other, setOther] = useState('');
   const [stay, setStay] = useState<boolean | null>(null);
   const [here] = useState(() => spotFor(`${Date.now()}`, 350));
 
@@ -43,7 +43,7 @@ export default function Emergencia() {
       petName: `${animal} ${label ?? 'en peligro'}`,
       title: `${animal} ${label ?? 'en peligro'}`,
       species,
-      description: [what.includes('otro') ? other.trim() : '', note.trim()].filter(Boolean).join('. ') || 'Necesita ayuda urgente.',
+      description: note.trim() || 'Necesita ayuda urgente.',
       situations: what,
       withMe: stay ?? undefined,
       place: finalPlace,
@@ -95,17 +95,6 @@ export default function Emergencia() {
             );
           })}
         </View>
-
-        {what.includes('otro') && (
-          <TextInput
-            value={other}
-            onChangeText={setOther}
-            placeholder="¿Qué está pasando?"
-            placeholderTextColor={colors.textMuted}
-            style={s.input}
-            accessibilityLabel="Otra situación"
-          />
-        )}
 
         <T.Black>¿Dónde está?</T.Black>
         <Pressable
@@ -173,7 +162,7 @@ export default function Emergencia() {
           {!vets.length ? <T.Muted style={{ fontSize: 12 }}>Ejemplos. Guarda tu veterinaria con teléfono en Salud para verla aquí.</T.Muted> : null}
         </Card>
 
-        <Button label="Publicar emergencia" kind="solid" disabled={!what.length || !finalPlace || (what.includes('otro') && !other.trim())} onPress={publish} />
+        <Button label="Publicar emergencia" kind="solid" disabled={!what.length || !finalPlace} onPress={publish} />
         {!what.length ? <T.Muted style={{ fontSize: 12, textAlign: 'center' }}>Elige qué está pasando para publicar.</T.Muted> : null}
       </ScrollView>
     </View>

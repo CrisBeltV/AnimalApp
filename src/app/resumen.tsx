@@ -1,10 +1,11 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { BackHeader, Button, Card, EntryRow, T, when } from '../components/ui';
 import { MISSION_XP, activityWord, goalText, minutesOn, missionGoal, startOfDay, walkGoals, walkXp } from '../lib/game';
 import { useStore } from '../lib/store';
 import { colors, fonts } from '../lib/theme';
+import { Text } from '../components/Text';
 
 // Resumen del paseo que acaba de terminar, o de los paseos recientes.
 export default function Resumen() {
@@ -21,7 +22,7 @@ export default function Resumen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <BackHeader
-        title={minutes !== null ? `¡Gran ${word.toLowerCase()}!` : `Resumen de ${word === 'Juego' ? 'juegos' : 'paseos'}`}
+        title={minutes !== null ? `¡Gran ${word.toLowerCase()}!` : `Registro de ${word === 'Juego' ? 'juegos' : 'paseos'}`}
         subtitle={minutes !== null ? `${pet.name} y tú · hoy` : undefined}
         onBack={() => router.dismissTo('/')}
       />
@@ -42,7 +43,7 @@ export default function Resumen() {
                   <T.Black>{g.name}</T.Black>
                   <T.Muted style={{ fontSize: 13 }}>
                     {g.name !== goalText(g.goal, data.parks) ? `${goalText(g.goal, data.parks)} · ` : ''}
-                    {g.count} {g.count === 1 ? 'vez' : 'veces'} · último {when(g.last)}
+                    {g.count === 0 ? 'Registrado, aún sin hacer' : `${g.count} ${g.count === 1 ? 'vez' : 'veces'} · último ${when(g.last)}`}
                   </T.Muted>
                 </View>
                 <T.Black style={{ fontSize: 14, color: colors.accent }}>Repetir</T.Black>

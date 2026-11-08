@@ -1,13 +1,13 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AccountButton } from '../../components/AccountButton';
 import { BarrioMap } from '../../components/BarrioMap';
 import { Icon } from '../../components/Icon';
 import { PetDrawing } from '../../components/PetDrawing';
-import { Bar, Button, MenuRow, T, soon } from '../../components/ui';
+import { Bar, MenuRow, T, soon } from '../../components/ui';
 import {
   MISSION_XP,
   activityWord,
@@ -25,6 +25,7 @@ import { RADIUS, badge, badgeColors, distanceText, kindOf, meters, spot, title }
 import { useStore } from '../../lib/store';
 import { colors, fonts, shadow, softShadow } from '../../lib/theme';
 import { useNow } from '../../lib/useNow';
+import { Text } from '../../components/Text';
 
 // INICIO = Paseo, el corazón de la app: el barrio como mapa de juego con tu mascota en el centro.
 export default function Inicio() {
@@ -207,15 +208,7 @@ export default function Inicio() {
               </View>
             ))}
           </ScrollView>
-          <Button
-            label="Editar"
-            kind="secondary"
-            onPress={() => {
-              setAlarms(false);
-              router.push('/recordatorios');
-            }}
-          />
-          <T.Muted style={{ fontSize: 12 }}>Se crean al guardar vacunas, tratamientos, citas, comidas y paseos.</T.Muted>
+          <T.Muted style={{ fontSize: 12 }}>Se crean al guardar vacunas, medicamentos, citas, comidas y paseos.</T.Muted>
         </View>
       </Modal>
 

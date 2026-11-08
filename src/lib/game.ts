@@ -1,3 +1,5 @@
+import { dishBalance, dishNutrition } from './dishes';
+import { allIngredients } from './ingredients';
 import { parseDate } from './health';
 import type { AppData, Entry, EntryKind, Park, Species, WalkGoal } from './types';
 
@@ -11,10 +13,9 @@ export const KIND_INFO: Record<EntryKind, { label: string; icon: string; xp: num
   paseo: { label: 'Paseo', icon: '🦮', xp: 0 }, // depende de los minutos
   peso: { label: 'Peso', icon: '⚖️', xp: 10 },
   deposicion: { label: 'Deposición', icon: '💩', xp: 5 },
-  medicamento: { label: 'Tratamiento', icon: '💊', xp: 10 },
+  medicamento: { label: 'Medicamento', icon: '💊', xp: 10 },
   vacuna: { label: 'Vacuna', icon: '💉', xp: 30 },
   veterinario: { label: 'Cita al veterinario', icon: '🩺', xp: 30 },
-  documento: { label: 'Documento', icon: '📄', xp: 10 },
   enfermedad: { label: 'Síntoma', icon: '🤒', xp: 5 },
   lesion: { label: 'Lesión', icon: '🩹', xp: 5 },
   novedad: { label: 'Novedad', icon: '⚠️', xp: 5 },
@@ -281,6 +282,25 @@ export const ACHIEVEMENTS: Achievement[] = [
     xp: 60,
     check: (d) => walks(d).length >= 10,
   },
+  {
+    id: 'chef',
+    title: 'Chef de casa',
+    description: 'Prepara tu primer plato con ingredientes',
+    icon: '🍲',
+    xp: 20,
+    check: (d) => (d.dishes ?? []).length >= 1,
+  },
+  {
+    id: 'plato-balanceado',
+    title: 'Plato balanceado',
+    description: 'Prepara un plato con las 5 huellas de equilibrio',
+    icon: '🥗',
+    xp: 40,
+    check: (d) => {
+      const list = allIngredients(d.entries, d.myIngredients);
+      return !!d.pet && (d.dishes ?? []).some((x) => dishBalance(dishNutrition(x.items, list), d.pet!.species, d.pet!.name).stars === 5);
+    },
+  },
 ];
 
 export function newlyUnlocked(data: AppData, now: number) {
@@ -377,6 +397,12 @@ export function walkGoals(data: AppData) {
     g.last = Math.max(g.last, e.at);
     groups.set(key, g);
   }
+  // Paseos registrados con nombre que todavía no han hecho.
+  for (const r of data.routines ?? []) {
+    if (groups.has(r.id) || r.hidden || !r.createdAt) continue;
+    const goal = goalFromKey(r.id);
+    if (goal) groups.set(r.id, { key: r.id, goal, count: 0, last: r.createdAt, started: 0 });
+  }
   const named = new Map((data.routines ?? []).map((r) => [r.id, r]));
   return [...groups.values()]
     .sort((a, b) => b.last - a.last)
@@ -422,6 +448,7 @@ export const GROOMING = [
   { id: 'bano', label: 'Baño', icon: '🛁' },
   { id: 'unas', label: 'Uñas', icon: '✂️' },
   { id: 'peluqueria', label: 'Peluquería', icon: '💇' },
+  { id: 'desparasitacion', label: 'Desparasitación', icon: '💊' },
   { id: 'oidos', label: 'Limpieza de oídos', icon: '👂' },
   { id: 'otro', label: 'Otro', icon: '✨' },
 ];

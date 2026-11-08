@@ -43,8 +43,7 @@
         }
       ],
       "expo-notifications",
-      "expo-status-bar",
-      "expo-sharing"
+      "expo-status-bar"
     ],
     "scheme": "animaapp",
     "splash": {

@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Icon } from '../components/Icon';
 import type { IconName } from '../components/Icon';
@@ -12,17 +12,19 @@ import { newEntry } from '../lib/routes';
 import { useStore } from '../lib/store';
 import { colors, fonts, radius } from '../lib/theme';
 import type { Entry, EntryKind } from '../lib/types';
+import { TextInput } from '../components/Text';
 
-const ITEMS: { kind: EntryKind; label?: string; icon: IconName; route?: string }[] = [
-  { kind: 'comida', icon: 'comida' },
+const ITEMS: { kind: EntryKind; label?: string; icon: IconName }[] = [
+  { kind: 'comida', label: 'Preparar plato', icon: 'comida' },
   { kind: 'agua', icon: 'agua' },
   { kind: 'peso', icon: 'cuerpo' },
-  { kind: 'veterinario', label: 'Expediente', icon: 'salud', route: '/expediente' },
+  { kind: 'medicamento', icon: 'medicamento' },
+  { kind: 'vacuna', icon: 'vacuna' },
+  { kind: 'veterinario', icon: 'cita' },
   { kind: 'novedad', label: 'Novedades', icon: 'sintoma' },
   { kind: 'paseo', icon: 'reloj' },
   { kind: 'higiene', label: 'Baño, uñas o peluquería', icon: 'cuerpo' },
   { kind: 'animo', label: 'Ánimo del día', icon: 'animo' },
-  { kind: 'alimento', label: 'Alimento nuevo', icon: 'tienda' },
   { kind: 'foto', label: 'Foto de la semana', icon: 'camara' },
   { kind: 'nota', label: 'Diario', icon: 'lista' },
 ];
@@ -34,7 +36,7 @@ const NUMBER: Partial<Record<EntryKind, { label: string; placeholder: string }>>
 };
 
 // Vacuna, medicamento, veterinario y novedades tienen su propia ventana (ver lib/routes).
-const OWN_SCREEN: EntryKind[] = ['vacuna', 'medicamento', 'veterinario', 'documento', 'novedad', 'deposicion', 'enfermedad', 'lesion', 'paseo', 'peso', 'alimento', 'higiene', 'foto', 'animo', 'comida'];
+const OWN_SCREEN: EntryKind[] = ['vacuna', 'medicamento', 'veterinario', 'novedad', 'deposicion', 'enfermedad', 'lesion', 'paseo', 'peso', 'alimento', 'higiene', 'foto', 'animo', 'comida'];
 
 const NOTE_HINT: Partial<Record<EntryKind, string>> = {
   comida: '150 g de concentrado',
@@ -94,16 +96,30 @@ export default function Registro() {
           onBack={() => (params.tipo || editing ? router.back() : setKind(null))}
         />
         <ScrollView contentContainerStyle={s.page} keyboardShouldPersistTaps="handled">
+          {/* Agua: solo la casilla de mililitros, con flechas para subir o bajar de 50 en 50. */}
           {kind === 'agua' && (
-            <View style={s.row}>
-              {['100', '250', '500'].map((v) => (
-                <Pressable key={v} onPress={() => setAmount(v)} style={[s.choice, amount === v && s.choiceActive]}>
-                  <T.Black>+{v} ml</T.Black>
+            <View style={s.water}>
+              <TextInput
+                accessibilityLabel="Mililitros"
+                value={amount}
+                onChangeText={(text) => setAmount(text.replace(/[^0-9]/g, ''))}
+                keyboardType="number-pad"
+                placeholder={num!.placeholder}
+                placeholderTextColor={colors.textMuted}
+                style={s.waterInput}
+              />
+              <T.Black style={{ fontSize: 15 }}>ml</T.Black>
+              <View style={s.arrows}>
+                <Pressable accessibilityLabel="Subir mililitros" onPress={() => setAmount(String((toNumber(amount) || 0) + 50))} style={s.arrow}>
+                  <T.Black style={{ fontSize: 10, color: colors.accent }}>▲</T.Black>
                 </Pressable>
-              ))}
+                <Pressable accessibilityLabel="Bajar mililitros" onPress={() => setAmount(String(Math.max(0, (toNumber(amount) || 0) - 50)))} style={s.arrow}>
+                  <T.Black style={{ fontSize: 10, color: colors.accent }}>▼</T.Black>
+                </Pressable>
+              </View>
             </View>
           )}
-          {num && (
+          {num && kind !== 'agua' && (
             <>
               <T.Black>{num.label}</T.Black>
               <TextInput
@@ -116,16 +132,20 @@ export default function Registro() {
               />
             </>
           )}
-          <T.Black>{kind === 'nota' ? '¿Cómo estuvo su día?' : 'Nota (opcional)'}</T.Black>
-          <TextInput
-            value={note}
-            onChangeText={setNote}
-            placeholder={NOTE_HINT[kind] ?? 'Algo que quieras recordar'}
-            placeholderTextColor={colors.textMuted}
-            style={[s.input, { minHeight: 80, textAlignVertical: 'top', paddingTop: 12 }]}
-            multiline
-          />
-          {editing && <Input field={{ key: 'fecha', label: 'Fecha', placeholder: 'DD/MM/AAAA', date: true, required: true }} value={date} onChange={setDate} />}
+          {kind !== 'agua' && (
+            <>
+              <T.Black>{kind === 'nota' ? '¿Cómo estuvo su día?' : 'Nota (opcional)'}</T.Black>
+              <TextInput
+                value={note}
+                onChangeText={setNote}
+                placeholder={NOTE_HINT[kind] ?? 'Algo que quieras recordar'}
+                placeholderTextColor={colors.textMuted}
+                style={[s.input, { minHeight: 80, textAlignVertical: 'top', paddingTop: 12 }]}
+                multiline
+              />
+            </>
+          )}
+          {editing && kind !== 'agua' && <Input field={{ key: 'fecha', label: 'Fecha', placeholder: 'DD/MM/AAAA', date: true, required: true }} value={date} onChange={setDate} />}
           {!editing && <T.Muted>{kind === 'paseo' ? 'Gana XP según los minutos.' : `Gana ${KIND_INFO[kind].xp} XP.`}</T.Muted>}
           <Button label={editing ? 'Guardar cambios' : 'Guardar'} kind="solid" onPress={save} disabled={!valid} />
           {editing && <DeleteEntry onDelete={() => (removeEntry(editing.id), finish())} />}
@@ -155,7 +175,7 @@ export default function Registro() {
         <T.Black style={{ color: colors.textMuted }}>Registrar a mano</T.Black>
         <View style={s.grid}>
           {ITEMS.map((it) => (
-            <Pressable key={it.kind} onPress={() => (it.route ? router.replace(it.route as never) : pick(it.kind))} style={s.item}>
+            <Pressable key={it.kind} onPress={() => pick(it.kind)} style={s.item}>
               <View style={s.itemIcon}>
                 <Icon name={it.icon} size={22} />
               </View>
@@ -212,17 +232,23 @@ const s = StyleSheet.create({
   urgent: { flex: 1, minHeight: 72, borderRadius: 20, backgroundColor: colors.card, borderWidth: 2, padding: 12, justifyContent: 'center', gap: 2 },
   urgentTitle: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   dot: { width: 10, height: 10, borderRadius: 5 },
-  choice: {
-    flex: 1,
-    minHeight: 46,
-    borderRadius: radius.pill,
-    backgroundColor: colors.card,
-    borderWidth: 2,
-    borderColor: colors.grey,
+  water: {
+    width: '34%',
+    minWidth: 120,
+    height: 50,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 4,
+    paddingLeft: 12,
+    paddingRight: 4,
+    backgroundColor: colors.card,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: colors.grey,
   },
-  choiceActive: { backgroundColor: colors.blue, borderColor: colors.blueOutline },
+  waterInput: { flex: 1, minWidth: 0, height: 46, fontSize: 17, fontFamily: fonts.bodyBold, color: colors.text },
+  arrows: { gap: 2 },
+  arrow: { width: 28, height: 20, borderRadius: 6, backgroundColor: colors.blue, alignItems: 'center', justifyContent: 'center' },
   input: {
     minHeight: 50,
     backgroundColor: colors.card,

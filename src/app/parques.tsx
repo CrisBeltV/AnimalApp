@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Circle } from 'react-native-svg';
 
@@ -12,6 +12,7 @@ import type { ParkInfo } from '../lib/parks';
 import { distanceText } from '../lib/reports';
 import { useStore } from '../lib/store';
 import { colors, fonts, radius, shadow, softShadow } from '../lib/theme';
+import { Text, TextInput } from '../components/Text';
 
 // Conquista de parques: el mapa de tu zona con cada parque pintado según de quién es este mes.
 // Solo se entra desde la bandera de Inicio.

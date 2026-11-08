@@ -21,8 +21,10 @@ export default function TabsLayout() {
       </View>
     );
   }
-  // Con la nube conectada, primero se entra o se crea la cuenta (o se elige seguir sin cuenta).
-  if (auth.enabled && !auth.session && !auth.skipped) return <Redirect href="/entrar" />;
+  // La primera vez: bienvenida, entrar o crear cuenta (o seguir sin cuenta) y luego crear la mascota.
+  // Con la nube conectada, siempre se pide entrar.
+  if (auth.enabled && !auth.session && !auth.skipped) return <Redirect href="/bienvenida" />;
+  if (!data.pet && !auth.signedIn && !auth.skipped) return <Redirect href="/bienvenida" />;
   if (!data.pet) return <Redirect href="/crear-mascota" />;
 
   return (

@@ -14,3 +14,7 @@ export const canNotify = false;
 export async function scheduleDaily(_title: string, _body: string, _hour: number, _minute: number): Promise<string | undefined> {
   return undefined;
 }
+
+export async function askNotify() {
+  return false;
+}

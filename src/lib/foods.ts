@@ -1,4 +1,6 @@
-import type { Entry } from './types';
+import { CATS, INGREDIENTS } from './ingredients';
+import type { Ingredient } from './ingredients';
+import type { Dish, Entry } from './types';
 
 // Valores por cada 100 g, tal como se sirve.
 export type Nutrition = { kcal: number; proteina: number; grasa: number; fibra: number };
@@ -8,7 +10,6 @@ export type Food = Nutrition & { id: string; name: string; group: string; source
 // Base de alimentos con valores típicos aproximados. Cada empaque es distinto:
 // para el concentrado de tu mascota usa la tabla de su bolsa (ficha del alimento).
 const TYPICAL = 'Valor típico aproximado';
-const USDA = 'Valor típico aproximado (tablas USDA de alimentos cocidos)';
 
 export const FOODS: Food[] = [
   { id: 'seco-perro', name: 'Concentrado seco para perro adulto', group: 'Concentrados', kcal: 360, proteina: 25, grasa: 14, fibra: 3.5, source: TYPICAL },
@@ -17,12 +18,6 @@ export const FOODS: Food[] = [
   { id: 'humedo-perro', name: 'Comida húmeda (lata) para perro', group: 'Húmedos', kcal: 95, proteina: 8, grasa: 5, fibra: 0.8, source: TYPICAL },
   { id: 'humedo-gato', name: 'Comida húmeda (sobre o lata) para gato', group: 'Húmedos', kcal: 90, proteina: 10, grasa: 5, fibra: 0.5, source: TYPICAL },
   { id: 'snack', name: 'Galletas o snacks para mascota', group: 'Premios', kcal: 350, proteina: 15, grasa: 8, fibra: 3, source: TYPICAL },
-  { id: 'pollo', name: 'Pollo cocido sin piel ni huesos', group: 'Casero', kcal: 165, proteina: 31, grasa: 3.6, fibra: 0, source: USDA },
-  { id: 'res', name: 'Carne de res magra cocida', group: 'Casero', kcal: 217, proteina: 26, grasa: 12, fibra: 0, source: USDA },
-  { id: 'pescado', name: 'Pescado blanco cocido sin espinas', group: 'Casero', kcal: 128, proteina: 26, grasa: 2.7, fibra: 0, source: USDA },
-  { id: 'huevo', name: 'Huevo cocido', group: 'Casero', kcal: 155, proteina: 13, grasa: 11, fibra: 0, source: USDA },
-  { id: 'arroz', name: 'Arroz blanco cocido', group: 'Casero', kcal: 130, proteina: 2.7, grasa: 0.3, fibra: 0.4, source: USDA },
-  { id: 'zanahoria', name: 'Zanahoria cocida', group: 'Casero', kcal: 35, proteina: 0.8, grasa: 0.2, fibra: 3, source: USDA },
 ];
 
 const num = (t?: string) => {
@@ -55,8 +50,15 @@ export function userFoods(entries: Entry[]): Food[] {
   return list;
 }
 
-export function allFoods(entries: Entry[]) {
-  return [...userFoods(entries), ...FOODS];
+// Ingredientes caseros (con sus valores) como alimentos de la base.
+const HOMEMADE = 'Valor típico aproximado (tablas USDA de alimentos cocidos)';
+
+export function allFoods(entries: Entry[], mine: Ingredient[] = []): Food[] {
+  return [
+    ...userFoods(entries),
+    ...FOODS,
+    ...[...INGREDIENTS, ...mine].map((i) => ({ id: i.id, name: i.name, group: CATS.find((c) => c.id === i.cat)!.label, kcal: i.kcal, proteina: i.proteina, grasa: i.grasa, fibra: i.fibra, source: HOMEMADE })),
+  ];
 }
 
 export function forGrams(food: Nutrition, grams: number): Nutrition {
@@ -76,4 +78,26 @@ export function dayNutrition(entries: Entry[], dayStart: number): Nutrition & { 
   const meals = entries.filter((e) => e.kind === 'comida' && e.at >= dayStart && e.at < dayStart + 86400000);
   const sum = (k: keyof Nutrition) => Math.round(meals.reduce((s, e) => s + num(e.fields?.[k]), 0) * 10) / 10;
   return { kcal: Math.round(sum('kcal')), proteina: sum('proteina'), grasa: sum('grasa'), fibra: sum('fibra'), meals: meals.length };
+}
+
+// Servir un plato: arma la comida del día con los gramos de cada ingrediente y lo que aporta.
+export function serveDish(dish: Dish, entries: Entry[], mine: Ingredient[] = []) {
+  const foods = allFoods(entries, mine);
+  const r1 = (n: number) => Math.round(n * 10) / 10;
+  const menu = dish.items.flatMap((it) => {
+    const food = foods.find((x) => x.id === it.id);
+    return food && it.g > 0 ? [{ id: it.id, name: food.name, g: it.g, ...forGrams(food, it.g) }] : [];
+  });
+  const sum = (k: keyof Nutrition) => menu.reduce((n, m) => n + m[k], 0);
+  const fields: Record<string, string> = {
+    menu: JSON.stringify(menu),
+    alimentoNombre: menu.map((m) => m.name).join(' + '),
+    gramos: String(r1(menu.reduce((n, m) => n + m.g, 0))),
+    kcal: String(Math.round(sum('kcal'))),
+    proteina: String(r1(sum('proteina'))),
+    grasa: String(r1(sum('grasa'))),
+    fibra: String(r1(sum('fibra'))),
+    plato: dish.name,
+  };
+  return { kind: 'comida' as const, fields, note: menu.map((m) => `${m.g} g de ${m.name}`).join(' + ') };
 }

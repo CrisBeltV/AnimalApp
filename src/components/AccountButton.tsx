@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ACHIEVEMENTS, levelInfo, totalXp } from '../lib/game';
@@ -8,6 +8,7 @@ import { useAuth } from '../lib/auth';
 import { useStore } from '../lib/store';
 import { colors, fonts, shadow } from '../lib/theme';
 import { MenuRow, T, soon } from './ui';
+import { Text } from './Text';
 
 // Botón redondo con la inicial del dueño y su nivel. Abre el menú "Tu cuenta".
 export function AccountButton() {
@@ -94,12 +95,12 @@ export function AccountButton() {
               onPress={go(() => soon('Tienda', 'Aquí podrás canjear monedas por accesorios para tu mascota.'))}
             />
             <T.Eyebrow style={s.group}>INICIO DE LA APP</T.Eyebrow>
-            {auth.session ? (
+            {auth.signedIn ? (
               <MenuRow
               compact
                 icon="entrar"
                 title="Tu cuenta"
-                detail={auth.email ?? 'Guardada en la nube'}
+                detail={auth.email ?? 'Tu cuenta'}
                 tint="grey"
                 onPress={go(() => router.push('/ajustes'))}
               />
@@ -108,13 +109,9 @@ export function AccountButton() {
               compact
                 icon="entrar"
                 title="Entrar o crear cuenta"
-                detail="Para guardar todo en la nube"
+                detail="Para guardar tu mascota en tu cuenta"
                 tint="grey"
-                onPress={go(() =>
-                  auth.enabled
-                    ? router.push('/entrar')
-                    : soon('Entrar o crear cuenta', 'Las cuentas llegan cuando conectemos la nube. Por ahora todo se guarda en este teléfono.'),
-                )}
+                onPress={go(() => router.push('/entrar'))}
               />
             )}
           </ScrollView>

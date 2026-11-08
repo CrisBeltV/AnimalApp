@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Circle } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -13,6 +13,7 @@ import { useStore } from '../lib/store';
 import { colors, fonts, shadow, softShadow } from '../lib/theme';
 import type { Report } from '../lib/types';
 import { useNow } from '../lib/useNow';
+import { Text, TextInput } from '../components/Text';
 
 function matches(r: Report, q: string) {
   if (!q) return true;

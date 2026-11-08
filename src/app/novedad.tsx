@@ -1,12 +1,13 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { Check, DeleteEntry, finish } from '../components/form';
 import { BackHeader, Button, Card, T } from '../components/ui';
 import { SIGN_GROUPS, SIGN_LABEL } from '../lib/health';
 import { useStore } from '../lib/store';
 import { colors, fonts, radius } from '../lib/theme';
+import { TextInput } from '../components/Text';
 
 // Novedades o comportamiento inusual: reemplaza a "Deposiciones" y "Síntomas o lesiones".
 export default function Novedad() {

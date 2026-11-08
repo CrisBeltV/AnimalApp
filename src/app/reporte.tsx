@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BarrioMap } from '../components/BarrioMap';
@@ -10,6 +10,7 @@ import { SITUATIONS, SIZES, ago, posted, badgeColors, clock12, distanceText, kin
 import { useStore } from '../lib/store';
 import { colors, fonts, softShadow } from '../lib/theme';
 import { useNow } from '../lib/useNow';
+import { Text, TextInput } from '../components/Text';
 
 const CHAT = 'El contacto es solo por el chat de la app, para que nadie vea tu número ni tu dirección. Llega en la siguiente versión.';
 

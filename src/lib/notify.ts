@@ -60,3 +60,12 @@ export async function scheduleDaily(title: string, body: string, hour: number, m
     trigger: { type: Notifications!.SchedulableTriggerInputTypes.DAILY, hour, minute },
   });
 }
+
+// Pide el permiso de avisos (pantalla de Permisos al crear la cuenta).
+export async function askNotify() {
+  try {
+    return await allowed();
+  } catch {
+    return false;
+  }
+}

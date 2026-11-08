@@ -1,12 +1,12 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AccountButton } from '../../components/AccountButton';
 import { ActivityStats } from '../../components/ActivityStats';
 import { CONDITIONS } from '../../components/BodyGuide';
-import { MealTimes, WalkReminder } from '../../components/DailyTimes';
+import { MealTimes } from '../../components/DailyTimes';
 import { Icon } from '../../components/Icon';
 import type { IconName } from '../../components/Icon';
 import { PetDrawing } from '../../components/PetDrawing';
@@ -17,6 +17,7 @@ import {
   groomingTypes,
   MOODS,
   foodStatus,
+  isIssue,
   lowMoodDays,
   activityWord,
   computeStats,
@@ -33,20 +34,21 @@ import {
 } from '../../lib/game';
 import { kg } from '../../lib/format';
 import { dailyKcal, dayNutrition } from '../../lib/foods';
-import { lastVaccine } from '../../lib/expediente';
 import { formatDate } from '../../lib/health';
 import { newEntry, openEntry } from '../../lib/routes';
 import { useStore } from '../../lib/store';
 import { colors, fonts } from '../../lib/theme';
-import type { AppData, EntryKind } from '../../lib/types';
+import type { AppData, Entry, EntryKind } from '../../lib/types';
 import { useNow } from '../../lib/useNow';
+import { Text } from '../../components/Text';
+import { useWeek } from '../../lib/i18n';
 
 type Filter = 'todo' | 'actividad' | 'comida' | 'cuerpo' | 'salud' | 'animo';
 
 const FILTERS: { id: Filter; label: string; icon: IconName }[] = [
   { id: 'todo', label: 'Todo', icon: 'todo' },
   { id: 'actividad', label: 'Actividad', icon: 'actividad' },
-  { id: 'comida', label: 'Comida y agua', icon: 'comida' },
+  { id: 'comida', label: 'Comida', icon: 'comida' },
   { id: 'cuerpo', label: 'Cuerpo', icon: 'cuerpo' },
   { id: 'salud', label: 'Salud', icon: 'salud' },
   { id: 'animo', label: 'Ánimo', icon: 'animo' },
@@ -69,7 +71,7 @@ export default function MiMascota() {
     actividad: <Actividad data={data} now={now} />,
     comida: <Comida data={data} now={now} />,
     cuerpo: <Cuerpo data={data} />,
-    salud: <Salud />,
+    salud: <Salud data={data} now={now} />,
     animo: <Animo data={data} now={now} onFilter={setFilter} />,
   };
 
@@ -133,7 +135,7 @@ function Todo({ data, now, onFilter }: { data: AppData; now: number; onFilter: (
   const minutes = weekMinutes(data.entries, now)[dayIndex(now)];
   const meals = todayEntries(data.entries, now, 'comida').length;
   const weight = lastWeight(data.entries);
-  const vaccine = lastVaccine(data.entries);
+  const vaccine = data.entries.find((e) => e.kind === 'vacuna');
   const moodText = m === 'feliz' ? 'está feliz' : m === 'normal' ? 'está en calma' : 'te extraña';
 
   return (
@@ -168,14 +170,15 @@ function Todo({ data, now, onFilter }: { data: AppData; now: number; onFilter: (
           </View>
         </Pressable>
         <Pressable onPress={() => onFilter('comida')} style={[s.tile, { backgroundColor: colors.card }]}>
-          <T.Bold>Comida y agua</T.Bold>
+          <T.Bold>Comida</T.Bold>
           <View style={{ gap: 6 }}>
             <T.Display style={{ fontSize: 22 }}>
               {meals} {meals === 1 ? 'comida' : 'comidas'} hoy
             </T.Display>
-            <View style={s.chip}>
+            {/* + Agua lleva a la tarjeta de agua, que es la segunda en Comida. */}
+            <Pressable accessibilityRole="button" accessibilityLabel="Agua" onPress={() => onFilter('comida')} style={s.chip}>
               <T.Black style={{ fontSize: 13 }}>+ Agua</T.Black>
-            </View>
+            </Pressable>
           </View>
         </Pressable>
         <Pressable onPress={() => onFilter('cuerpo')} style={[s.tile, { backgroundColor: colors.lilacSoft, minHeight: 108 }]}>
@@ -218,7 +221,6 @@ function Actividad({ data, now }: { data: AppData; now: number }) {
   const today = weekMinutes(data.entries, now)[dayIndex(now)];
   const todayWalks = todayEntries(data.entries, now, 'paseo');
   const recent = data.entries.filter((e) => e.kind === 'paseo').slice(0, 3);
-  const days = streak(data.entries, now, 'paseo');
 
   // Solo datos: lo que se registra en Paseo se acumula aquí.
   return (
@@ -243,17 +245,6 @@ function Actividad({ data, now }: { data: AppData; now: number }) {
           recent.map((e) => <EntryRow key={e.id} entry={e} species={pet.species} />)
         )}
       </Card>
-      <Card style={[s.rowBetween, { backgroundColor: colors.lilacSoft }]}>
-        <View style={{ flex: 1, gap: 6 }}>
-          <T.Black>Logro cerca: 7 días {pet.species === 'gato' ? 'jugando' : 'paseando'}</T.Black>
-          <Bar value={(Math.min(days, 7) / 7) * 100} color={colors.lilacStrong} track="#FFFFFF" />
-        </View>
-        <T.Display style={{ fontSize: 22, marginLeft: 12 }}>{Math.min(days, 7)}/7</T.Display>
-      </Card>
-      <Card style={{ gap: 8 }}>
-        <T.Black>Recordarme {pet.species === 'gato' ? 'jugar' : 'pasear'} cada día a las</T.Black>
-        <WalkReminder />
-      </Card>
     </>
   );
 }
@@ -264,7 +255,6 @@ function Comida({ data, now }: { data: AppData; now: number }) {
   const meals = todayEntries(data.entries, now, 'comida');
   const water = todayEntries(data.entries, now, 'agua').reduce((sum, e) => sum + (e.ml ?? 0), 0);
   const goal = waterGoal(data);
-  const days = streak(data.entries, now, 'comida');
   const food = foodStatus(data.entries, now);
   const store = data.providers.find((p) => p.id === food?.food.fields?.tiendaId);
   const lowFood = food?.left !== null && food?.left !== undefined && food.left <= 7;
@@ -272,7 +262,18 @@ function Comida({ data, now }: { data: AppData; now: number }) {
 
   return (
     <>
-      <Intro title="Comida y agua" text={`Anota cada comida y el agua del día. Comer a sus horas mantiene la racha y la energía de ${pet.name}.`} />
+      <Intro title="Comida" text={`Prepara cada plato y anota el agua del día. Comer a sus horas mantiene la racha y la energía de ${pet.name}.`} />
+      <Card style={{ gap: 10 }}>
+        <View style={s.rowBetween}>
+          <T.Black>Agua</T.Black>
+          <Big value={`${water}`} unit={`de ${goal} ml`} />
+        </View>
+        <Bar value={(water / goal) * 100} color="#4F9BE0" />
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <Button label="+ 100 ml" style={{ flex: 1 }} onPress={() => addEntry({ kind: 'agua', ml: 100 })} />
+          <Button label="+ 250 ml" style={{ flex: 1 }} onPress={() => addEntry({ kind: 'agua', ml: 250 })} />
+        </View>
+      </Card>
       {food ? (
         <Card style={[{ gap: 8 }, (lowFood || expiring) && { borderWidth: 2, borderColor: colors.lost }]}>
           <View style={s.rowBetween}>
@@ -302,16 +303,8 @@ function Comida({ data, now }: { data: AppData; now: number }) {
             </T.Bold>
           )}
         </Card>
-      ) : (
-        <Card style={{ gap: 6 }}>
-          <T.Black>¿Qué come {pet.name}?</T.Black>
-          <T.Muted style={{ fontSize: 13 }}>Toma foto de la bolsa o la lata. La app te avisará cuando se esté acabando o vaya a vencer.</T.Muted>
-        </Card>
-      )}
-      <View style={{ flexDirection: 'row', gap: 10 }}>
-        <Button label={food ? 'Bolsa nueva' : 'Su alimento'} style={{ flex: 1 }} onPress={() => add('alimento')} />
-        <Button label="Registrar comida" kind="solid" style={{ flex: 1 }} onPress={() => add('comida')} />
-      </View>
+      ) : null}
+      <Button label="Preparar plato" kind="solid" onPress={() => router.push('/cocina')} />
       <Balance data={data} now={now} />
       <Card style={{ gap: 8 }}>
         <View style={s.rowBetween}>
@@ -321,32 +314,34 @@ function Comida({ data, now }: { data: AppData; now: number }) {
         {meals.length === 0 ? (
           <T.Muted>Aún no anotas comidas hoy.</T.Muted>
         ) : (
-          meals.map((e) => <EntryRow key={e.id} entry={e} species={pet.species} />)
+          // Solo el nombre del plato y cuántas veces se sirvió hoy. Tocar abre la última para corregirla.
+          servedToday(meals).map((g) => (
+            <Pressable key={g.name} accessibilityRole="button" onPress={() => openEntry(g.last)} style={s.mealRow}>
+              <T.Black style={{ flex: 1, fontSize: 15 }}>{g.name}</T.Black>
+              <T.Bold style={{ fontSize: 14, color: colors.accent }}>
+                {g.count} {g.count === 1 ? 'vez' : 'veces'}
+              </T.Bold>
+            </Pressable>
+          ))
         )}
       </Card>
       <Card style={{ gap: 8 }}>
-        <T.Black>Horarios de comida</T.Black>
         <MealTimes />
-      </Card>
-      <Card style={{ gap: 10 }}>
-        <View style={s.rowBetween}>
-          <T.Black>Agua</T.Black>
-          <Big value={`${water}`} unit={`de ${goal} ml`} />
-        </View>
-        <Bar value={(water / goal) * 100} color="#4F9BE0" />
-        <View style={{ flexDirection: 'row', gap: 10 }}>
-          <Button label="+ 100 ml" style={{ flex: 1 }} onPress={() => addEntry({ kind: 'agua', ml: 100 })} />
-          <Button label="+ 250 ml" style={{ flex: 1 }} onPress={() => addEntry({ kind: 'agua', ml: 250 })} />
-        </View>
-      </Card>
-      <Card style={[s.rowBetween, { backgroundColor: colors.lilacSoft }]}>
-        <T.Black>Racha de comidas</T.Black>
-        <T.Display style={{ fontSize: 20 }}>
-          {days} {days === 1 ? 'día' : 'días'}
-        </T.Display>
       </Card>
     </>
   );
+}
+
+// Comidas de hoy agrupadas por plato: nombre, veces y la última (para editarla).
+function servedToday(meals: Entry[]) {
+  const groups = new Map<string, { name: string; count: number; last: Entry }>();
+  for (const e of meals) {
+    const name = e.fields?.plato || e.fields?.alimentoNombre || 'Comida';
+    const g = groups.get(name);
+    if (g) g.count += 1;
+    else groups.set(name, { name, count: 1, last: e });
+  }
+  return [...groups.values()];
 }
 
 // Balance nutricional del día con las comidas que tienen gramos.
@@ -464,23 +459,88 @@ function Cuerpo({ data }: { data: AppData }) {
   );
 }
 
-function Salud() {
+function HealthSection({
+  icon,
+  title,
+  empty,
+  kinds,
+  addKind,
+  data,
+  alert,
+}: {
+  icon: IconName;
+  title: string;
+  empty: string;
+  kinds: EntryKind[];
+  addKind: EntryKind;
+  data: AppData;
+  alert?: boolean;
+}) {
+  const list = data.entries.filter((e) => kinds.includes(e.kind)).slice(0, 3);
+  return (
+    <Card style={[{ gap: 6 }, alert && { borderWidth: 2, borderColor: colors.lost }]}>
+      <Pressable accessibilityLabel={`Añadir: ${title}`} onPress={() => add(addKind)} style={s.healthHead}>
+        <View style={[s.healthIcon, { backgroundColor: alert ? colors.lostSoft : colors.blue }]}>
+          <Icon name={icon} size={20} color={alert ? colors.lostText : colors.accent} />
+        </View>
+        <T.Black style={{ flex: 1 }}>{title}</T.Black>
+        <View style={s.addChip}>
+          <Icon name="mas" size={16} color={colors.accent} />
+          <T.Black style={{ fontSize: 13, color: colors.accent }}>Añadir</T.Black>
+        </View>
+      </Pressable>
+      {list.length === 0 ? (
+        <T.Muted style={{ fontSize: 13 }}>{empty}</T.Muted>
+      ) : (
+        list.map((e) => <EntryRow key={e.id} entry={e} species={data.pet!.species} />)
+      )}
+    </Card>
+  );
+}
+
+function Salud({ data, now }: { data: AppData; now: number }) {
+  const { removeReminder } = useStore();
+  const upcoming = data.reminders.filter((r) => r.everyHours || r.at > now);
+  const issues = data.entries.filter((e) => isIssue(e) && e.at >= startOfDay(now) - 6 * DAY_MS);
+
   return (
     <>
-      <T.Muted style={{ fontSize: 13 }}>La app guarda lo que anotas; el diagnóstico siempre es del veterinario.</T.Muted>
-      <Pressable accessibilityLabel="Abrir el expediente" onPress={() => router.push('/expediente')} style={s.expediente}>
-        <T.Body style={{ flex: 1, fontSize: 21 }}>📋  Expediente</T.Body>
-        <Icon name="chevronRight" size={22} color={colors.accent} strokeWidth={2.4} />
-      </Pressable>
-      <Pressable accessibilityLabel="Abrir novedades" onPress={() => router.push('/novedades')} style={s.expediente}>
-        <T.Body style={{ flex: 1, fontSize: 21 }}>⚠️  Novedades</T.Body>
-        <Icon name="chevronRight" size={22} color={colors.accent} strokeWidth={2.4} />
-      </Pressable>
+      <Intro title="Salud" text="Vacunas, medicinas, citas y novedades. Toca un registro para editarlo. La app guarda los datos; el diagnóstico siempre es del veterinario." />
+      <HealthSection icon="vacuna" title="Vacunas" empty="Sin vacunas anotadas. Toma foto del carnet o escribe los datos." kinds={['vacuna']} addKind="vacuna" data={data} alert={!data.entries.some((e) => e.kind === 'vacuna')} />
+      <HealthSection icon="medicamento" title="Medicamentos" empty="Desparasitantes, pastillas, gotas. Toma foto de la caja." kinds={['medicamento']} addKind="medicamento" data={data} />
+      <HealthSection icon="cita" title="Veterinario" empty="Anota cada cita y guarda tu veterinaria de confianza." kinds={['veterinario']} addKind="veterinario" data={data} />
+      <HealthSection
+        icon="sintoma"
+        title="Novedades o comportamiento inusual"
+        empty="Deposiciones, vómito, babeo, cojera, lesiones y más."
+        kinds={['novedad', 'deposicion', 'enfermedad', 'lesion']}
+        addKind="novedad"
+        data={data}
+        alert={issues.length > 0}
+      />
+      {upcoming.length > 0 && (
+        <Card style={{ gap: 8, backgroundColor: colors.lilacSoft }}>
+          <T.Black>Próximos recordatorios</T.Black>
+          {upcoming.slice(0, 6).map((r) => (
+            <View key={r.id} style={s.reminder}>
+              <Icon name="reloj" size={18} color={colors.lilacText} />
+              <View style={{ flex: 1 }}>
+                <T.Bold style={{ fontSize: 14 }}>{r.title}</T.Bold>
+                <T.Muted style={{ fontSize: 12 }}>{r.everyHours ? `Cada ${r.everyHours} horas` : formatDate(r.at)}</T.Muted>
+              </View>
+              <Pressable accessibilityLabel={`Quitar recordatorio ${r.title}`} onPress={() => removeReminder(r.id)} style={s.remove}>
+                <T.Black style={{ fontSize: 13, color: colors.lilacText }}>Quitar</T.Black>
+              </Pressable>
+            </View>
+          ))}
+        </Card>
+      )}
     </>
   );
 }
 
 function Animo({ data, now, onFilter }: { data: AppData; now: number; onFilter: (f: Filter) => void }) {
+  const week = useWeek();
   const pet = data.pet!;
   const stats = computeStats(data, now);
   const days = streak(data.entries, now);
@@ -547,7 +607,7 @@ function Animo({ data, now, onFilter }: { data: AppData; now: number; onFilter: 
                   backgroundColor: n === 0 ? colors.grey : n < 3 ? colors.blueOutline : colors.accent,
                 }}
               />
-              <T.Black style={{ fontSize: 12, color: colors.textMuted }}>{DAYS[i]}</T.Black>
+              <T.Black style={{ fontSize: 12, color: colors.textMuted }}>{week[i]}</T.Black>
             </View>
           ))}
         </View>
@@ -621,7 +681,7 @@ function Timeline({ data, now }: { data: AppData; now: number }) {
           <View key={g.day}>
             <T.Eyebrow style={{ marginTop: 8 }}>{dayLabel(g.day).toUpperCase()}</T.Eyebrow>
             {g.items.map((e) => (
-              <EntryRow key={e.id} entry={e} species={data.pet!.species} />
+              <EntryRow key={e.id} entry={e} species={data.pet!.species} compact />
             ))}
           </View>
         ))
@@ -632,7 +692,6 @@ function Timeline({ data, now }: { data: AppData; now: number }) {
 }
 
 const s = StyleSheet.create({
-  expediente: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 72, paddingHorizontal: 18, paddingVertical: 16, borderRadius: 22, backgroundColor: colors.blue, borderWidth: 1.5, borderColor: colors.blueOutline },
   page: { paddingHorizontal: 16, paddingBottom: 140, gap: 14, width: '100%', maxWidth: 560, alignSelf: 'center' },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   filters: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: colors.card, borderRadius: 22, padding: 6 },
@@ -671,6 +730,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
   },
   dot: { width: 8, height: 8, borderRadius: 4 },
+  mealRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.grey },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
   bars: { height: 110, flexDirection: 'row', alignItems: 'flex-end' },
   barCol: { flex: 1, alignItems: 'center', justifyContent: 'flex-end' },
@@ -704,5 +764,7 @@ const s = StyleSheet.create({
     borderRadius: 17,
     backgroundColor: colors.blue,
   },
+  reminder: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  remove: { paddingHorizontal: 10, height: 32, borderRadius: 16, backgroundColor: '#FFFFFF', justifyContent: 'center' },
   healthIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
 });

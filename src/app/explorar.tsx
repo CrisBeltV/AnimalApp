@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Linking, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Linking, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BarrioMap } from '../components/BarrioMap';
@@ -13,6 +13,7 @@ import { parkStats } from '../lib/game';
 import { useStore } from '../lib/store';
 import { colors, fonts, radius, shadow, softShadow } from '../lib/theme';
 import type { ProviderType } from '../lib/types';
+import { Text, TextInput } from '../components/Text';
 
 type Category = 'parques' | 'veterinarias' | ProviderType;
 

@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import type { ReactNode } from 'react';
 import type { StyleProp, TextStyle, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,6 +11,7 @@ import { colors, radius, softShadow, type } from '../lib/theme';
 import type { Entry, Species } from '../lib/types';
 import { Icon } from './Icon';
 import type { IconName } from './Icon';
+import { Text } from './Text';
 
 type TProps = { children: ReactNode; style?: StyleProp<TextStyle>; numberOfLines?: number };
 
@@ -137,7 +138,7 @@ export function MenuRow({
   );
 }
 
-export function BackHeader({ title, subtitle, onBack, right }: { title: string; subtitle?: string; onBack?: () => void; right?: ReactNode }) {
+export function BackHeader({ title, subtitle, onBack }: { title: string; subtitle?: string; onBack?: () => void }) {
   const insets = useSafeAreaInsets();
   return (
     <View style={[styles.backHeader, { paddingTop: insets.top + 12 }]}>
@@ -154,7 +155,6 @@ export function BackHeader({ title, subtitle, onBack, right }: { title: string; 
         </T.Display>
         {subtitle ? <T.Muted>{subtitle}</T.Muted> : null}
       </View>
-      {right}
     </View>
   );
 }
@@ -164,7 +164,8 @@ export function soon(title: string, text: string) {
 }
 
 // Toca un registro para abrirlo y editarlo.
-export function EntryRow({ entry, species }: { entry: Entry; species: Species }) {
+// compact: fila más baja para la línea de tiempo; el agua y el peso muestran su valor junto al nombre.
+export function EntryRow({ entry, species, compact }: { entry: Entry; species: Species; compact?: boolean }) {
   const info = KIND_INFO[entry.kind];
   const label = entry.kind === 'paseo' ? activityWord(species) : info.label;
   const { data } = useStore();
@@ -178,17 +179,25 @@ export function EntryRow({ entry, species }: { entry: Entry; species: Species })
         : entry.kind === 'agua'
           ? `${entry.ml} ml`
           : (entry.note ?? '');
+  const inline = compact && (entry.kind === 'agua' || entry.kind === 'peso');
   return (
-    <Pressable accessibilityHint="Abre el registro para editarlo" onPress={() => openEntry(entry)} style={styles.entry}>
-      <Text style={{ fontSize: 22 }}>{info.icon}</Text>
+    <Pressable accessibilityHint="Abre el registro para editarlo" onPress={() => openEntry(entry)} style={[styles.entry, compact && styles.entryCompact]}>
+      <Text style={{ fontSize: compact ? 18 : 22 }}>{info.icon}</Text>
       <View style={{ flex: 1 }}>
-        <T.Black style={{ fontSize: 15 }}>{label}</T.Black>
-        {detail ? <T.Muted style={{ fontSize: 13 }} numberOfLines={2}>{detail}</T.Muted> : null}
+        <T.Black style={{ fontSize: compact ? 14 : 15 }}>
+          {label}
+          {inline && detail ? <T.Muted style={{ fontSize: 13 }}>{`  ${detail}`}</T.Muted> : null}
+        </T.Black>
+        {detail && !inline ? (
+          <T.Muted style={{ fontSize: compact ? 12 : 13 }} numberOfLines={compact ? 1 : 2}>
+            {detail}
+          </T.Muted>
+        ) : null}
       </View>
       <View style={{ alignItems: 'flex-end' }}>
-        {entry.photos?.length || entry.files?.length ? <Icon name="camara" size={16} color={colors.textMuted} /> : null}
-        <T.Black style={{ fontSize: 13, color: colors.accent }}>+{entry.xp} XP</T.Black>
-        <T.Muted style={{ fontSize: 12 }}>{when(entry.at)}</T.Muted>
+        {entry.photos?.length ? <Icon name="camara" size={16} color={colors.textMuted} /> : null}
+        <T.Black style={{ fontSize: compact ? 12 : 13, color: colors.accent }}>+{entry.xp} XP</T.Black>
+        <T.Muted style={{ fontSize: compact ? 11 : 12 }}>{when(entry.at)}</T.Muted>
       </View>
     </Pressable>
   );
@@ -248,5 +257,6 @@ export const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.grey,
   },
+  entryCompact: { gap: 10, paddingVertical: 6 },
   pill: { ...softShadow },
 });

@@ -1,10 +1,11 @@
 import { router } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import type { BottomTabBarProps } from 'expo-router/js-tabs';
 
 import { colors, fonts, shadow } from '../lib/theme';
 import { Icon } from './Icon';
 import type { IconName } from './Icon';
+import { Text } from './Text';
 
 // Barra flotante de la maqueta: Mi mascota · INICIO (Paseo) · Comunidad, y aparte el botón +.
 // Los tres botones son del mismo tamaño; el elegido crece, con fondo azul e ícono blanco.

@@ -1,10 +1,11 @@
 import { router } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { BackHeader, T } from '../components/ui';
 import { KINDS } from '../lib/reports';
 import type { Kind } from '../lib/reports';
 import { colors, softShadow } from '../lib/theme';
+import { Text } from '../components/Text';
 
 const OPTIONS: { kind: Kind; title: string; detail: string; go: () => void }[] = [
   {

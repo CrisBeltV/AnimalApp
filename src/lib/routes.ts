@@ -13,14 +13,14 @@ function pathFor(kind: EntryKind) {
   if (kind === 'animo') return '/animo';
   if (kind === 'vacuna' || kind === 'medicamento') return '/ficha';
   if (kind === 'veterinario') return '/veterinario';
-  if (kind === 'documento') return '/documento';
   if (kind === 'novedad' || kind === 'deposicion' || kind === 'enfermedad' || kind === 'lesion') return '/novedad';
   return '/registro';
 }
 
 export function newEntry(kind: EntryKind, replace = false) {
   const go = replace ? router.replace : router.push;
-  go({ pathname: pathFor(kind), params: { tipo: kind } });
+  // Una comida nueva se sirve desde Preparar plato; /comida queda para editar una ya anotada.
+  go({ pathname: kind === 'comida' ? '/cocina' : pathFor(kind), params: { tipo: kind } });
 }
 
 export function openEntry(entry: Entry) {

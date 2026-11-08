@@ -15,7 +15,7 @@ const WHO = [
   { id: 'peluqueria', label: 'Peluquería o groomer' },
 ];
 
-// Higiene y cuidados (baño, uñas, peluquería, oídos, otro): uno o varios a la vez,
+// Higiene y cuidados (baño, uñas, peluquería, desparasitación, oídos, otro): uno o varios a la vez,
 // con la próxima fecha y su recordatorio.
 export default function Higiene() {
   const params = useLocalSearchParams<{ id?: string }>();

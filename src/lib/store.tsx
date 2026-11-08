@@ -3,7 +3,6 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { ReactNode } from 'react';
 
 import { useAuth } from './auth';
-import { deleteFiles } from './files';
 import { closeCloudReport, fetchReports, publishReport, pullData, pushData } from './cloud';
 
 import { KIND_INFO, NEW_PARK_XP, newlyUnlocked, walkXp } from './game';
@@ -12,7 +11,8 @@ import { emptyData } from './types';
 import { cancel } from './notify';
 import { sampleReports } from './samples';
 import { posted, spot } from './reports';
-import type { AppData, ClinicalProfile, Entry, Park, Pet, Provider, Reminder, Report, Settings, Sighting, Vet, WalkGoal, WalkRoutine } from './types';
+import type { AppData, Dish, Entry, Lang, Park, Pet, PetProfile, Provider, Reminder, Report, Settings, Sighting, Vet, WalkGoal, WalkRoutine } from './types';
+import type { Ingredient } from './ingredients';
 
 // Los datos viven en el teléfono y, si el dueño entró con su cuenta,
 // también en la nube (Supabase), para no perderlos al cambiar de teléfono.
@@ -47,19 +47,32 @@ type Store = {
   removeEntry: (id: string) => void;
   addReminders: (reminders: Omit<Reminder, 'id'>[]) => void;
   removeReminder: (id: string) => void;
-  saveReminder: (reminder: Omit<Reminder, 'id'> & { id?: string }) => string;
   saveVet: (vet: Omit<Vet, 'id'> & { id?: string }) => string;
   savePark: (park: Omit<Park, 'id'> & { id?: string }) => string;
   removePark: (id: string) => void;
   saveRoutine: (routine: Omit<WalkRoutine, 'id'> & { id?: string }) => string;
   saveProvider: (provider: Omit<Provider, 'id'> & { id?: string }) => string;
   setSettings: (patch: Partial<Settings>) => void;
-  setClinical: (clinical: ClinicalProfile) => void;
   startWalk: (goal?: WalkGoal) => void;
   finishWalk: () => { minutes: number; id: string };
   cancelWalk: () => void;
   reset: () => void;
+  saveDish: (dish: Omit<Dish, 'id' | 'createdAt'> & { id?: string }) => string;
+  removeDish: (id: string) => void;
+  saveIngredient: (ing: Ingredient) => void;
+  markSeen: (id: string) => void;
+  setLanguage: (lang: Lang) => void;
+  updatePet: (patch: Partial<Pet>) => void;
+  addPet: (pet: Omit<Pet, 'createdAt'>) => void;
+  switchPet: (index: number) => void;
 };
+
+const PROFILE_KEYS = ['pet', 'entries', 'activeWalkStart', 'walkGoal', 'routines', 'unlocked', 'reminders', 'settings', 'dishes'] as const;
+
+// Lo de la mascota activa, para guardarlo mientras se usa otra.
+function profileOf(d: AppData): PetProfile {
+  return Object.fromEntries(PROFILE_KEYS.map((k) => [k, d[k]])) as PetProfile;
+}
 
 const Ctx = createContext<Store | null>(null);
 
@@ -274,7 +287,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       removeEntry: (id) =>
         change((d) => {
           d.reminders.filter((r) => r.entryId === id).forEach((r) => cancel(r.notificationId));
-          deleteFiles(d.entries.find((e) => e.id === id)?.files);
           return {
             ...d,
             entries: d.entries.filter((e) => e.id !== id),
@@ -289,14 +301,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             ...list.map((r, i) => ({ ...r, id: `rec-${Date.now()}-${i}` })),
           ].sort((a, b) => a.at - b.at),
         })),
-      saveReminder: (reminder) => {
-        const id = reminder.id ?? `rec-${Date.now()}`;
-        change((d) => {
-          cancel(d.reminders.find((r) => r.id === id)?.notificationId);
-          return { ...d, reminders: [...d.reminders.filter((r) => r.id !== id), { ...reminder, id }].sort((x, y) => x.at - y.at) };
-        });
-        return id;
-      },
       removeReminder: (id) =>
         change((d) => {
           cancel(d.reminders.find((r) => r.id === id)?.notificationId);
@@ -323,7 +327,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         change((d) => ({ ...d, providers: [{ ...provider, id }, ...d.providers.filter((p) => p.id !== id)] }));
         return id;
       },
-      setClinical: (clinical) => change((d) => ({ ...d, clinical })),
       setSettings: (patch) => change((d) => ({ ...d, settings: { ...d.settings, ...patch } })),
       startWalk: (goal) => change((d) => ({ ...d, activeWalkStart: Date.now(), walkGoal: goal ?? { tipo: 'paseo' } })),
       finishWalk: () => {
@@ -342,6 +345,38 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       },
       cancelWalk: () => change((d) => ({ ...d, activeWalkStart: null, walkGoal: undefined })),
       reset: () => setData({ ...emptyData, updatedAt: Date.now() }),
+      saveDish: (dish) => {
+        const id = dish.id ?? `plato-${Date.now()}`;
+        update((d) => {
+          const old = (d.dishes ?? []).find((x) => x.id === id);
+          const saved: Dish = { ...dish, id, createdAt: old?.createdAt ?? Date.now() };
+          // Solo un alimento diario: si este pasa a ser diario, los demás dejan de serlo.
+          const others = (d.dishes ?? [])
+            .filter((x) => x.id !== id)
+            .map((x) => (saved.days?.length === 7 && x.days?.length === 7 ? { ...x, days: [] } : x));
+          return { ...d, dishes: [saved, ...others] };
+        });
+        return id;
+      },
+      removeDish: (id) => change((d) => ({ ...d, dishes: (d.dishes ?? []).filter((x) => x.id !== id) })),
+      saveIngredient: (ing) => change((d) => ({ ...d, myIngredients: [...(d.myIngredients ?? []).filter((x) => x.id !== ing.id), ing] })),
+      markSeen: (id) => change((d) => ({ ...d, seen: [...new Set([...(d.seen ?? []), id])] })),
+      setLanguage: (language) => change((d) => ({ ...d, language })),
+      updatePet: (patch) => change((d) => (d.pet ? { ...d, pet: { ...d.pet, ...patch } } : d)),
+      // La mascota nueva empieza con sus registros vacíos; la actual queda guardada.
+      addPet: (pet) =>
+        change((d) => ({
+          ...d,
+          otherPets: [...(d.otherPets ?? []), profileOf(d)],
+          ...profileOf({ ...emptyData, pet: { ...pet, createdAt: Date.now() } }),
+        })),
+      switchPet: (index) =>
+        change((d) => {
+          const others = d.otherPets ?? [];
+          const next = others[index];
+          if (!next) return d;
+          return { ...d, ...next, settings: { ...emptyData.settings, ...next.settings }, otherPets: [...others.slice(0, index), profileOf(d), ...others.slice(index + 1)] };
+        }),
     }),
     [ready, data, celebrate, update, change, addEntry, sync, neighbors, enabled, userId, refreshReports],
   );

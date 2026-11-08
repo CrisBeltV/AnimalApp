@@ -1,14 +1,17 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { DeleteEntry, Input, finish } from '../components/form';
 import { BackHeader, Button, Card, T } from '../components/ui';
+import { todaysDish } from '../lib/dishes';
 import { foodStatus } from '../lib/game';
 import { allFoods, forGrams } from '../lib/foods';
 import { formatDate, parseDate } from '../lib/health';
 import { useStore } from '../lib/store';
+import { useNow } from '../lib/useNow';
 import { colors, fonts, radius } from '../lib/theme';
+import { TextInput } from '../components/Text';
 
 type Item = { foodId: string; grams: string };
 
@@ -17,14 +20,19 @@ const num = (text: string) => Number(text.replace(',', '.'));
 // Registrar una comida como un menú: uno o varios alimentos, cada uno con sus gramos.
 // Con la tabla nutricional de cada alimento se calcula lo que aportó la comida.
 export default function Comida() {
-  const params = useLocalSearchParams<{ id?: string }>();
+  const params = useLocalSearchParams<{ id?: string; plato?: string }>();
   const { data, addEntry, updateEntry, removeEntry } = useStore();
   const pet = data.pet!;
   const editing = data.entries.find((e) => e.id === params.id);
   const f = editing?.fields ?? {};
-  const foods = allFoods(data.entries);
-  const current = foodStatus(data.entries, Date.now())?.food;
+  const foods = allFoods(data.entries, data.myIngredients);
+  const now = useNow();
+  const current = foodStatus(data.entries, now)?.food;
   const defaultFood = foods.find((x) => x.id === `mio:${current?.id}`) ?? foods.find((x) => x.group === 'Tus alimentos');
+  const dishes = data.dishes ?? [];
+  // Al preparar: el plato elegido, o el que toca hoy (diario o recurrente).
+  const startDish = editing ? undefined : (dishes.find((d) => d.id === params.plato) ?? todaysDish(dishes, now));
+  const [dishId, setDishId] = useState<string | undefined>(startDish?.id);
 
   const [items, setItems] = useState<Item[]>((): Item[] => {
     if (f.menu) {
@@ -35,6 +43,7 @@ export default function Comida() {
       }
     }
     if (f.alimentoId) return [{ foodId: f.alimentoId, grams: f.gramos ?? '' }];
+    if (startDish) return startDish.items.map((x) => ({ foodId: x.id, grams: String(x.g) }));
     if (!editing && defaultFood) return [{ foodId: defaultFood.id, grams: current?.fields?.porcion ?? '' }];
     return [];
   });
@@ -61,6 +70,13 @@ export default function Comida() {
 
   const setGrams = (i: number, text: string) =>
     setItems((list) => list.map((it, k) => (k === i ? { ...it, grams: text.replace(/[^0-9.,]/g, '') } : it)));
+  const pickDish = (id: string) => {
+    const dish = dishes.find((d) => d.id === id);
+    if (!dish) return;
+    setDishId(id);
+    setItems(dish.items.map((x) => ({ foodId: x.id, grams: String(x.g) })));
+    setSearching(false);
+  };
   const addFood = (id: string) => {
     setItems((list) => [...list, { foodId: id, grams: '' }]);
     setSearching(false);
@@ -79,6 +95,8 @@ export default function Comida() {
       fibra: String(r1(total.fibra)),
     };
     if (note.trim()) fields.nota = note.trim();
+    const dish = dishes.find((d) => d.id === dishId);
+    if (dish) fields.plato = dish.name;
     const sameDay = new Date(day!).toDateString() === new Date(editing?.at ?? Date.now()).toDateString();
     const at = editing && sameDay ? editing.at : new Date(day!).toDateString() === new Date().toDateString() ? Date.now() : day! + 12 * 3600000;
     const summary = menu.map((m) => `${m.g} g de ${m.name}`).join(' + ');
@@ -90,8 +108,33 @@ export default function Comida() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <BackHeader title={editing ? 'Editar comida' : 'Registrar comida'} subtitle={pet.name} />
+      <BackHeader title={editing ? 'Editar comida' : 'Preparar plato'} subtitle={pet.name} />
       <ScrollView contentContainerStyle={s.page} keyboardShouldPersistTaps="handled">
+        {!editing ? (
+          <Card style={{ gap: 8 }}>
+            <T.Black>Tus platos</T.Black>
+            {dishes.length === 0 ? (
+              <T.Muted style={{ fontSize: 13 }}>{'Crea platos con ingredientes en "Preparar plato" y aquí los sirves con un toque.'}</T.Muted>
+            ) : (
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                {dishes.map((d) => (
+                  <Pressable
+                    key={d.id}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: dishId === d.id }}
+                    onPress={() => pickDish(d.id)}
+                    style={[s.dish, dishId === d.id && { backgroundColor: colors.accent, borderColor: colors.accent }]}
+                  >
+                    <T.Black style={{ fontSize: 14, color: dishId === d.id ? '#FFFFFF' : colors.accent }}>🍲 {d.name}</T.Black>
+                  </Pressable>
+                ))}
+              </View>
+            )}
+            <Pressable onPress={() => router.push('/cocina')} style={s.small}>
+              <T.Black style={{ fontSize: 14, color: colors.accent }}>＋ Crear un plato nuevo</T.Black>
+            </Pressable>
+          </Card>
+        ) : null}
         <Card style={{ gap: 10 }}>
           <T.Black>
             Menú de esta comida<T.Black style={{ color: colors.lostText }}> *</T.Black>
@@ -146,8 +189,8 @@ export default function Comida() {
                     <T.Black style={{ fontSize: 14 }}>Cerrar lista</T.Black>
                   </Pressable>
                 )}
-                <Pressable onPress={() => router.push({ pathname: '/ficha', params: { tipo: 'alimento' } })} style={s.small}>
-                  <T.Black style={{ fontSize: 14, color: colors.accent }}>+ Registrar su alimento con foto</T.Black>
+                <Pressable onPress={() => router.push('/cocina')} style={s.small}>
+                  <T.Black style={{ fontSize: 14, color: colors.accent }}>+ Crear plato</T.Black>
                 </Pressable>
               </View>
             </>
@@ -178,7 +221,7 @@ export default function Comida() {
 
         <Input field={{ key: 'fecha', label: 'Fecha', placeholder: 'DD/MM/AAAA', date: true, required: true }} value={date} onChange={setDate} />
         <Input field={{ key: 'nota', label: 'Nota (opcional)', placeholder: 'Se lo comió todo, dejó la mitad…', multiline: true }} value={note} onChange={setNote} />
-        <Button label={editing ? 'Guardar cambios' : 'Guardar comida'} kind="solid" disabled={!valid} onPress={save} />
+        <Button label={editing ? 'Guardar cambios' : 'Servir plato'} kind="solid" disabled={!valid} onPress={save} />
         {editing && <DeleteEntry onDelete={() => (removeEntry(editing.id), finish())} />}
       </ScrollView>
     </View>
@@ -215,6 +258,7 @@ const s = StyleSheet.create({
   },
   x: { paddingHorizontal: 6, paddingVertical: 8 },
   picked: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: radius.md, backgroundColor: colors.blue },
+  dish: { paddingHorizontal: 12, height: 38, borderRadius: 19, borderWidth: 1.5, borderColor: colors.blueOutline, backgroundColor: '#FFFFFF', justifyContent: 'center' },
   small: { alignSelf: 'flex-start', paddingVertical: 6, paddingHorizontal: 4 },
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: '#FFFFFF' },
 });

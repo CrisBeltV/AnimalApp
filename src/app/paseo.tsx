@@ -1,35 +1,20 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Check, Chips, Input, ParkPicker } from '../components/form';
 import { BarrioMap } from '../components/BarrioMap';
 import { PetDrawing } from '../components/PetDrawing';
 import { Bar, Button, T } from '../components/ui';
-import { MISSION_XP, NEW_PARK_XP, WALK_GOALS, WALK_TYPES, activityWord, computeStats, goalFromKey, goalText, goalKey, minutesOn, missionGoal, mood, parkStats, RECURRENT_TIMES, startOfDay, walkGoals } from '../lib/game';
+import { MISSION_XP, NEW_PARK_XP, WALK_GOALS, activityWord, computeStats, goalFromKey, goalText, goalKey, minutesOn, missionGoal, mood, parkStats, startOfDay, walkGoals } from '../lib/game';
 import { clock } from '../lib/format';
 import { useStore } from '../lib/store';
 import { colors, fonts, shadow } from '../lib/theme';
 import type { WalkGoal } from '../lib/types';
 import { useNow } from '../lib/useNow';
+import { Text } from '../components/Text';
 
-const TIME_GOALS = [
-  { id: '15', label: '15 min' },
-  { id: '30', label: '30 min' },
-  { id: '45', label: '45 min' },
-  { id: '60', label: '1 hora' },
-  { id: '0', label: 'Libre' },
-];
-
-const KM_GOALS = [
-  { id: '1', label: '1 km' },
-  { id: '2', label: '2 km' },
-  { id: '3', label: '3 km' },
-  { id: '0', label: 'Sin meta' },
-];
-
-// Paseo en tres pasos: elegir el objetivo, el cronómetro en vivo y el resumen al terminar.
+// Paseo en tres pasos: Iniciar (o un paseo recurrente), el cronómetro en vivo y el resumen al terminar.
 export default function PaseoEnCurso() {
   const params = useLocalSearchParams<{ parque?: string; meta?: string }>();
   const { data, startWalk, finishWalk, cancelWalk, saveRoutine } = useStore();
@@ -39,14 +24,15 @@ export default function PaseoEnCurso() {
   const word = activityWord(pet.species);
   const start = data.activeWalkStart;
   // meta: objetivo de un paseo ya registrado que se quiere repetir.
-  const preset = goalFromKey(params.meta);
+  const presetKey = params.meta;
+  const preset = goalFromKey(presetKey);
   const [summaryId, setSummaryId] = useState<string | null>(null);
-  const [tipo, setTipo] = useState(preset?.tipo ?? (pet.species === 'gato' ? 'juego' : 'paseo'));
-  const [time, setTime] = useState(preset ? String(preset.minutes ?? 0) : '30');
-  const [km, setKm] = useState(preset ? String(preset.km ?? 0) : '0');
-  const [park, setPark] = useState<string | undefined>(preset?.parqueId ?? params.parque);
-  const [explore, setExplore] = useState(!!preset?.explorar);
-  const [name, setName] = useState(() => (params.meta ? ((data.routines ?? []).find((r) => r.id === params.meta)?.name ?? '') : ''));
+  const tipo = preset?.tipo ?? (pet.species === 'gato' ? 'juego' : 'paseo');
+  const time = preset ? String(preset.minutes ?? 0) : '0';
+  const km = preset ? String(preset.km ?? 0) : '0';
+  const park = preset?.parqueId ?? params.parque;
+  const explore = !!preset?.explorar;
+  const [name] = useState(() => (params.meta ? ((data.routines ?? []).find((r) => r.id === params.meta)?.name ?? '') : ''));
 
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
@@ -59,7 +45,6 @@ export default function PaseoEnCurso() {
     return goal;
   };
   const key = goalKey(goalNow());
-  const times = walkGoals(data).find((g) => g.key === key)?.started ?? 0;
   const savedName = (data.routines ?? []).find((r) => r.id === key)?.name;
 
   const begin = () => {
@@ -123,11 +108,11 @@ export default function PaseoEnCurso() {
     );
   } else if (preset) {
     // Paseo ya registrado: solo su nombre y empezar.
-    const registered = walkGoals(data).find((g) => g.key === params.meta);
+    const saved = walkGoals(data).find((g) => g.key === presetKey);
     panel = (
       <>
         <T.Eyebrow style={{ textAlign: 'center' }}>{word.toUpperCase()} REGISTRADO</T.Eyebrow>
-        <T.Display style={{ fontSize: 26, textAlign: 'center' }}>{registered?.name ?? savedName ?? goalText(preset, data.parks)}</T.Display>
+        <T.Display style={{ fontSize: 26, textAlign: 'center' }}>{saved?.name ?? savedName ?? goalText(preset, data.parks)}</T.Display>
         <Button label={`Empezar ${word.toLowerCase()} con ${pet.name}`} kind="solid" onPress={begin} />
         <Button label="Volver" kind="secondary" onPress={back} />
       </>
@@ -135,25 +120,7 @@ export default function PaseoEnCurso() {
   } else {
     panel = (
       <>
-        <T.Display style={{ fontSize: 26, textAlign: 'center' }}>{word === 'Juego' ? 'Nuevo juego' : 'Nuevo paseo'}</T.Display>
-        <T.Muted style={{ textAlign: 'center', marginTop: -8 }}>Elige el objetivo de hoy</T.Muted>
-        <T.Black>Actividad</T.Black>
-        <Chips options={WALK_TYPES} value={tipo} onChange={setTipo} />
-        <T.Black>Tiempo</T.Black>
-        <Chips options={TIME_GOALS} value={time} onChange={setTime} />
-        <T.Black>Distancia</T.Black>
-        <Chips options={KM_GOALS} value={km} onChange={setKm} />
-        {km !== '0' && <T.Muted style={{ fontSize: 12 }}>La distancia se medirá con el GPS del teléfono, muy pronto.</T.Muted>}
-        <T.Black>Conquista: ¿en qué parque?</T.Black>
-        <ParkPicker value={park} onChange={setPark} />
-        <Check label="Exploración: visitar un parque nuevo" detail={`+${NEW_PARK_XP} XP al registrar un parque donde no hayan ido`} on={explore} onPress={() => setExplore(!explore)} />
-        <Input field={{ key: 'nombre', label: 'Nombre (opcional)', placeholder: savedName ?? 'Paseo de la tarde' }} value={name} onChange={setName} />
-        <T.Muted style={{ fontSize: 12 }}>
-          {times >= RECURRENT_TIMES
-            ? `Ya está en tus paseos recurrentes (lo hicieron ${times} veces).`
-            : `Si lo hacen ${RECURRENT_TIMES} veces con este mismo objetivo, quedará en tus paseos recurrentes. Llevan ${times}.`}
-        </T.Muted>
-        <Button label={`Empezar ${word.toLowerCase()} con ${pet.name}`} kind="solid" onPress={begin} />
+        <Button label="Iniciar" kind="solid" onPress={() => startWalk(goalNow())} />
         <Button label="Volver" kind="secondary" onPress={back} />
       </>
     );

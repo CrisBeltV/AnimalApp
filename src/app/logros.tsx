@@ -1,9 +1,10 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { BackHeader, Bar, Card, T } from '../components/ui';
 import { ACHIEVEMENTS, MAX_LEVEL, levelInfo, totalXp } from '../lib/game';
 import { useStore } from '../lib/store';
 import { colors, fonts } from '../lib/theme';
+import { Text } from '../components/Text';
 
 // Nivel, XP e insignias.
 export default function Logros() {

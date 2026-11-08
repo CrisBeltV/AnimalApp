@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Input } from '../components/form';
@@ -10,6 +10,7 @@ import { parseDate } from '../lib/health';
 import { useStore } from '../lib/store';
 import { colors, fonts, radius } from '../lib/theme';
 import type { Species } from '../lib/types';
+import { TextInput } from '../components/Text';
 
 // Bienvenida: el dueño y su mascota.
 export default function CrearMascota() {

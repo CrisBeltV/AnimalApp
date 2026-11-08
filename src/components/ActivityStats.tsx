@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { PERIODS, activityEntries, change, dayLabel, hm, minutesByDay, monthName, monthly, periodStats } from '../lib/activity';
 import { WALK_TYPES, startOfDay } from '../lib/game';
 import { colors, fonts } from '../lib/theme';
 import type { AppData } from '../lib/types';
 import { T } from './ui';
+import { Text } from './Text';
+import { useWeek } from '../lib/i18n';
 
 const DAY = 24 * 60 * 60 * 1000;
 const WEEKS = 18;
@@ -16,6 +18,7 @@ const ROWS = ['L', '', 'M', '', 'V', '', 'D'];
 // Tiempos acumulados de actividad, como un registro de práctica: calendario por días,
 // días y horas del periodo comparados con el anterior, y totales por mes. Solo datos.
 export function ActivityStats({ data, now }: { data: AppData; now: number }) {
+  const week = useWeek();
   const [tipo, setTipo] = useState('todas');
   const [period, setPeriod] = useState(90);
   const [menu, setMenu] = useState<'tipo' | 'periodo' | null>(null);
@@ -81,7 +84,7 @@ export function ActivityStats({ data, now }: { data: AppData; now: number }) {
           <View style={{ gap: 2, paddingTop: 16 }}>
             {ROWS.map((r, i) => (
               <Text key={i} style={s.rowLabel}>
-                {r}
+                {r ? week[i] : ''}
               </Text>
             ))}
           </View>
@@ -137,17 +140,6 @@ export function ActivityStats({ data, now }: { data: AppData; now: number }) {
         <Metric title="Días con actividad" value={`${st.days} d`} sub={`${period} días`} pct={change(st.days, st.prev.days)} />
         <Metric title="Tiempo acumulado" value={hm(st.minutes)} sub={`${period} días`} pct={change(st.minutes, st.prev.minutes)} />
         <Metric title="Número de actividades" value={`${st.count}`} sub={`${period} días`} pct={change(st.count, st.prev.count)} />
-      </View>
-
-      <View style={s.card}>
-        <T.Black>Minutos por día</T.Black>
-        <Bars values={st.daily} back={st.prevDaily} height={100} />
-        <View style={s.legend}>
-          <View style={[s.legendCell, { backgroundColor: colors.accent }]} />
-          <T.Muted style={{ fontSize: 12 }}>últimos {period} días</T.Muted>
-          <View style={[s.legendCell, { backgroundColor: colors.grey, marginLeft: 10 }]} />
-          <T.Muted style={{ fontSize: 12 }}>{period} días anteriores</T.Muted>
-        </View>
       </View>
 
       <View style={s.card}>

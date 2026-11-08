@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { BarrioMap } from '../components/BarrioMap';
 import { Chips, PhotoSet } from '../components/form';
@@ -15,6 +15,7 @@ import { KINDS, clock12, dayText, title } from '../lib/reports';
 import { useStore } from '../lib/store';
 import { colors, fonts, radius } from '../lib/theme';
 import type { Species } from '../lib/types';
+import { TextInput } from '../components/Text';
 
 const splitTraits = (text: string) =>
   text

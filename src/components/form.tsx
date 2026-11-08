@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Image, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image, Modal, Pressable, StyleSheet, View } from 'react-native';
 
 import { REMIND_OPTIONS, formatDate, parseDate } from '../lib/health';
 import type { Field } from '../lib/health';
@@ -13,6 +13,7 @@ import type { ProviderType, Reminder } from '../lib/types';
 import { CalendarSheet } from './Calendar';
 import { Icon } from './Icon';
 import { Button, Card, T, soon } from './ui';
+import { Text, TextInput } from './Text';
 
 // Piezas compartidas por las ventanas que registran datos de salud.
 
