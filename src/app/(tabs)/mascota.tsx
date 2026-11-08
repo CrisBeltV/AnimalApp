@@ -472,10 +472,6 @@ function Salud() {
         <T.Body style={{ flex: 1, fontSize: 21 }}>📋  Expediente</T.Body>
         <Icon name="chevronRight" size={22} color={colors.accent} strokeWidth={2.4} />
       </Pressable>
-      <Pressable accessibilityLabel="Abrir tarjeta de emergencia" onPress={() => router.push('/tarjeta')} style={s.expediente}>
-        <T.Body style={{ flex: 1, fontSize: 21 }}>🚑  Tarjeta de emergencia</T.Body>
-        <Icon name="chevronRight" size={22} color={colors.accent} strokeWidth={2.4} />
-      </Pressable>
       <Pressable accessibilityLabel="Abrir novedades" onPress={() => router.push('/novedades')} style={s.expediente}>
         <T.Body style={{ flex: 1, fontSize: 21 }}>⚠️  Novedades</T.Body>
         <Icon name="chevronRight" size={22} color={colors.accent} strokeWidth={2.4} />

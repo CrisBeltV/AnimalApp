@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { Image, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Files } from '../components/Files';
 import { Chips, Input, finish } from '../components/form';
 import { BackHeader, Button, Card, T } from '../components/ui';
-import { activeTreatments, entryTitle } from '../lib/expediente';
+import { emergencyInfo, hasPhones } from '../lib/emergencyCard';
+import { shareEmergencyCard } from '../lib/expedienteShare';
 import { deleteFiles } from '../lib/files';
 import { useStore } from '../lib/store';
+import { useNow } from '../lib/useNow';
 import { colors } from '../lib/theme';
 import type { ClinicalProfile } from '../lib/types';
 
@@ -28,10 +30,14 @@ function chosen(c: ClinicalProfile): { label: string; value: string; alert?: boo
 export default function Clinico() {
   const { data, setClinical } = useStore();
   const pet = data.pet!;
+  const now = useNow();
   const saved = data.clinical ?? {};
   const isNew = Object.keys(saved).length === 0;
   const [editing, setEditing] = useState(isNew);
   const [c, setC] = useState<ClinicalProfile>(saved);
+  const [asking, setAsking] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
   const text = (k: 'microchip' | 'marks' | 'allergies' | 'conditions' | 'ownerPhone') => (v: string) => setC((x) => ({ ...x, [k]: v }));
 
   const save = () => {
@@ -41,9 +47,28 @@ export default function Clinico() {
     finish();
   };
 
+  const share = async (withPhones: boolean) => {
+    setAsking(false);
+    setBusy(true);
+    setFailed(false);
+    try {
+      await shareEmergencyCard(data, withPhones);
+    } catch {
+      setFailed(true);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (!editing) {
-    const rows = chosen(saved);
-    const treatments = activeTreatments(data.entries, Date.now());
+    const info = emergencyInfo(data, now);
+    const rows = [
+      ...chosen(saved).filter((r) => r.label !== 'Tu teléfono'),
+      ...(info.treatments.length ? [{ label: 'En tratamiento', value: info.treatments.join('; '), alert: false }] : []),
+      ...(info.vaccine ? [{ label: 'Última vacuna', value: info.vaccine, alert: false }] : []),
+      ...(info.vet ? [{ label: 'Veterinaria', value: [info.vet.name, info.vet.detail].filter(Boolean).join(' · '), alert: false }] : []),
+      ...(saved.ownerPhone ? [{ label: 'Tu teléfono', value: saved.ownerPhone, alert: false }] : []),
+    ];
     return (
       <View style={{ flex: 1, backgroundColor: colors.bg }}>
         <BackHeader title="Ficha clínica" subtitle={pet.name} />
@@ -56,21 +81,27 @@ export default function Clinico() {
                 <T.Black style={{ fontSize: 17, color: r.alert ? colors.lostText : colors.text }}>{r.value}</T.Black>
               </View>
             ))}
-            {rows.length === 0 && treatments.length === 0 && <T.Muted>Solo hay foto por ahora.</T.Muted>}
+            {rows.length === 0 && <T.Muted>Solo hay foto por ahora.</T.Muted>}
           </Card>
-          {treatments.length > 0 && (
-            <Card style={{ gap: 8 }}>
-              <T.Black>Tratamientos en curso</T.Black>
-              {treatments.map((t) => (
-                <T.Body key={t.id}>
-                  💊 {entryTitle(t)}
-                  {t.fields?.fin ? ` · hasta ${t.fields.fin}` : ''}
-                </T.Body>
-              ))}
-            </Card>
+          {failed && <T.Muted style={{ color: colors.lostText }}>No se pudo preparar la ficha. Inténtalo de nuevo.</T.Muted>}
+          {Platform.OS !== 'web' && (
+            <Button label={busy ? 'Preparando…' : 'Compartir'} disabled={busy} onPress={() => (hasPhones(info) ? setAsking(true) : share(false))} />
           )}
           <Button label="Editar" kind="solid" onPress={() => setEditing(true)} />
         </ScrollView>
+
+        <Modal transparent visible={asking} animationType="fade" onRequestClose={() => setAsking(false)}>
+          <Pressable style={s.backdrop} onPress={() => setAsking(false)}>
+            <Pressable style={s.sheet} onPress={() => {}}>
+              <T.Display style={{ fontSize: 20 }}>¿Incluir los teléfonos?</T.Display>
+              <T.Muted>
+                Saldrán en la ficha: {[info.ownerPhone ? 'tu número' : '', info.vet?.phone ? 'el de la veterinaria' : ''].filter(Boolean).join(' y ')}. Quien la reciba podrá verlos.
+              </T.Muted>
+              <Button label="Sí, incluirlos" kind="solid" onPress={() => share(true)} />
+              <Button label="No, dejarlos fuera" kind="secondary" onPress={() => share(false)} />
+            </Pressable>
+          </Pressable>
+        </Modal>
       </View>
     );
   }
@@ -113,5 +144,7 @@ export default function Clinico() {
 
 const s = StyleSheet.create({
   page: { paddingHorizontal: 16, paddingBottom: 40, gap: 14, width: '100%', maxWidth: 560, alignSelf: 'center' },
+  backdrop: { flex: 1, backgroundColor: 'rgba(15,37,64,0.45)', alignItems: 'center', justifyContent: 'center', padding: 20 },
+  sheet: { width: '100%', maxWidth: 420, backgroundColor: colors.card, borderRadius: 28, padding: 20, gap: 12 },
   photo: { width: 140, height: 140, borderRadius: 70, alignSelf: 'center', backgroundColor: colors.grey },
 });
