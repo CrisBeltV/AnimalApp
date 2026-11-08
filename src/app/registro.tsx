@@ -13,13 +13,11 @@ import { useStore } from '../lib/store';
 import { colors, fonts, radius } from '../lib/theme';
 import type { Entry, EntryKind } from '../lib/types';
 
-const ITEMS: { kind: EntryKind; label?: string; icon: IconName }[] = [
+const ITEMS: { kind: EntryKind; label?: string; icon: IconName; route?: string }[] = [
   { kind: 'comida', icon: 'comida' },
   { kind: 'agua', icon: 'agua' },
   { kind: 'peso', icon: 'cuerpo' },
-  { kind: 'medicamento', icon: 'medicamento' },
-  { kind: 'vacuna', icon: 'vacuna' },
-  { kind: 'veterinario', icon: 'cita' },
+  { kind: 'veterinario', label: 'Expediente: vacuna, tratamiento, consulta', icon: 'salud', route: '/expediente' },
   { kind: 'novedad', label: 'Novedades', icon: 'sintoma' },
   { kind: 'paseo', icon: 'reloj' },
   { kind: 'higiene', label: 'Baño, uñas o peluquería', icon: 'cuerpo' },
@@ -157,7 +155,7 @@ export default function Registro() {
         <T.Black style={{ color: colors.textMuted }}>Registrar a mano</T.Black>
         <View style={s.grid}>
           {ITEMS.map((it) => (
-            <Pressable key={it.kind} onPress={() => pick(it.kind)} style={s.item}>
+            <Pressable key={it.kind} onPress={() => (it.route ? router.replace(it.route as never) : pick(it.kind))} style={s.item}>
               <View style={s.itemIcon}>
                 <Icon name={it.icon} size={22} />
               </View>

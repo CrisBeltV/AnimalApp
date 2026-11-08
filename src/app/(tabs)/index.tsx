@@ -28,7 +28,7 @@ import { useNow } from '../../lib/useNow';
 
 // INICIO = Paseo, el corazón de la app: el barrio como mapa de juego con tu mascota en el centro.
 export default function Inicio() {
-  const { data, reports } = useStore();
+  const { data, reports, removeReminder } = useStore();
   const insets = useSafeAreaInsets();
   const walking = data.activeWalkStart !== null;
   const now = useNow(walking ? 1000 : 30000);
@@ -204,10 +204,15 @@ export default function Inicio() {
                   <T.Muted style={{ fontSize: 12 }}>{r.when}</T.Muted>
                 </View>
                 {r.off ? <T.Muted style={{ fontSize: 12 }}>🔕</T.Muted> : null}
+                {data.reminders.some((x) => x.id === r.id) && (
+                  <Pressable accessibilityLabel={`Quitar recordatorio ${r.title}`} onPress={() => removeReminder(r.id)} style={s.alarmRemove}>
+                    <T.Black style={{ fontSize: 13, color: colors.lilacText }}>Quitar</T.Black>
+                  </Pressable>
+                )}
               </View>
             ))}
           </ScrollView>
-          <T.Muted style={{ fontSize: 12 }}>Se crean al guardar vacunas, medicamentos, citas, comidas y paseos.</T.Muted>
+          <T.Muted style={{ fontSize: 12 }}>Se crean al guardar vacunas, tratamientos, citas, comidas y paseos.</T.Muted>
         </View>
       </Modal>
 
@@ -264,6 +269,7 @@ const s = StyleSheet.create({
     gap: 12,
   },
   missionRow: { gap: 4 },
+  alarmRemove: { paddingHorizontal: 10, height: 32, borderRadius: 16, backgroundColor: colors.lilacSoft, justifyContent: 'center' },
   alarmRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.grey },
   missionBar: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   badge: {

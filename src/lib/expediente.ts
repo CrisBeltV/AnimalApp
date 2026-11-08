@@ -1,4 +1,4 @@
-import { formatDate } from './health';
+import { formatDate, parseDate } from './health';
 import type { ClinicalProfile, Entry, Pet } from './types';
 
 // El expediente junta lo que tiene una historia clínica veterinaria: consultas, vacunas,
@@ -109,4 +109,21 @@ export function profileLines(pet: Pet, clinical: ClinicalProfile | undefined, we
     conditions: c.conditions || undefined,
     empty: !c.sex && !c.neutered && !c.microchip && !c.marks && !c.allergies && !c.conditions,
   };
+}
+
+export type ExpSummary = { vaccine?: Entry; treatments: Entry[]; nextVisit?: number };
+
+// Lo que importa de un vistazo: última vacuna, tratamientos que siguen en curso y próxima cita.
+export function expedienteSummary(entries: Entry[], now: number): ExpSummary {
+  const today = new Date(now).setHours(0, 0, 0, 0);
+  const vaccines = entries.filter((e) => e.kind === 'vacuna').sort((a, b) => b.at - a.at);
+  const treatments = entries.filter((e) => {
+    const end = e.kind === 'medicamento' ? parseDate(e.fields?.fin) : null;
+    return end !== null && end >= today;
+  });
+  const visits = entries
+    .filter((e) => e.kind === 'veterinario')
+    .map((e) => parseDate(e.fields?.proxima))
+    .filter((t): t is number => t !== null && t >= today);
+  return { vaccine: vaccines[0], treatments, nextVisit: visits.length ? Math.min(...visits) : undefined };
 }

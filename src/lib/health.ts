@@ -26,7 +26,7 @@ export const VACUNA_FIELDS: Field[] = [
 ];
 
 export const MEDICAMENTO_FIELDS: Field[] = [
-  { key: 'nombre', label: 'Nombre del medicamento', placeholder: 'Desparasitante, antibiótico…', required: true },
+  { key: 'nombre', label: 'Nombre del tratamiento o medicamento', placeholder: 'Desparasitante, antibiótico…', required: true },
   { key: 'dosis', label: 'Cantidad o dosis', placeholder: '1 tableta, 5 gotas, 2 ml', required: true },
   { key: 'cadaHoras', label: 'Cada cuántas horas', placeholder: '8', number: true },
   { key: 'inicio', label: 'Fecha de inicio', placeholder: 'DD/MM/AAAA', required: true, date: true },

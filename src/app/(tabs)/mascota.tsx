@@ -34,6 +34,7 @@ import {
 } from '../../lib/game';
 import { kg } from '../../lib/format';
 import { dailyKcal, dayNutrition } from '../../lib/foods';
+import { entryTitle, expedienteSummary } from '../../lib/expediente';
 import { formatDate } from '../../lib/health';
 import { newEntry, openEntry } from '../../lib/routes';
 import { useStore } from '../../lib/store';
@@ -504,41 +505,31 @@ function HealthSection({
 }
 
 function Salud({ data, now }: { data: AppData; now: number }) {
-  const { removeReminder } = useStore();
-  const upcoming = data.reminders.filter((r) => r.everyHours || r.at > now);
   const issues = data.entries.filter((e) => isIssue(e) && e.at >= startOfDay(now) - 6 * DAY_MS);
+  const sum = expedienteSummary(data.entries, now);
+  const noVaccine = !sum.vaccine;
 
   return (
     <>
-      <Intro title="Salud" text="Vacunas, medicinas, citas y novedades. Toca un registro para editarlo. La app guarda los datos; el diagnóstico siempre es del veterinario." />
-      <Pressable accessibilityLabel="Abrir el expediente" onPress={() => router.push('/expediente')} style={s.expediente}>
-        <Text style={{ fontSize: 28 }}>📋</Text>
-        <View style={{ flex: 1 }}>
+      <T.Muted style={{ fontSize: 13 }}>La app guarda lo que anotas; el diagnóstico siempre es del veterinario.</T.Muted>
+      <Pressable
+        accessibilityLabel="Abrir el expediente"
+        onPress={() => router.push('/expediente')}
+        style={[s.expediente, noVaccine && { borderWidth: 2, borderColor: colors.lost }]}
+      >
+        <View style={{ flex: 1, gap: 4 }}>
           <T.Black>Expediente de {data.pet!.name}</T.Black>
+          <T.Body style={noVaccine ? { color: colors.lostText } : undefined}>
+            {sum.vaccine ? `💉 Última vacuna: ${entryTitle(sum.vaccine).replace('Vacuna · ', '')} · ${formatDate(sum.vaccine.at)}` : '💉 Sin vacunas anotadas'}
+          </T.Body>
+          {sum.treatments.map((t) => (
+            <T.Body key={t.id}>💊 En tratamiento: {entryTitle(t)}</T.Body>
+          ))}
+          {sum.nextVisit ? <T.Body>🩺 Próxima cita: {formatDate(sum.nextVisit)}</T.Body> : null}
           <T.Muted style={{ fontSize: 13 }}>Consultas, vacunas, tratamientos y documentos</T.Muted>
         </View>
         <Icon name="chevronRight" size={20} color={colors.textMuted} />
       </Pressable>
-      {upcoming.length > 0 && (
-        <Card style={{ gap: 8, backgroundColor: colors.lilacSoft }}>
-          <T.Black>Próximos recordatorios</T.Black>
-          {upcoming.slice(0, 6).map((r) => (
-            <View key={r.id} style={s.reminder}>
-              <Icon name="reloj" size={18} color={colors.lilacText} />
-              <View style={{ flex: 1 }}>
-                <T.Bold style={{ fontSize: 14 }}>{r.title}</T.Bold>
-                <T.Muted style={{ fontSize: 12 }}>{r.everyHours ? `Cada ${r.everyHours} horas` : formatDate(r.at)}</T.Muted>
-              </View>
-              <Pressable accessibilityLabel={`Quitar recordatorio ${r.title}`} onPress={() => removeReminder(r.id)} style={s.remove}>
-                <T.Black style={{ fontSize: 13, color: colors.lilacText }}>Quitar</T.Black>
-              </Pressable>
-            </View>
-          ))}
-        </Card>
-      )}
-      <HealthSection icon="vacuna" title="Vacunas" empty="Sin vacunas anotadas. Toma foto del carnet o escribe los datos." kinds={['vacuna']} addKind="vacuna" data={data} alert={!data.entries.some((e) => e.kind === 'vacuna')} />
-      <HealthSection icon="medicamento" title="Tratamientos" empty="Medicinas, desparasitantes, pastillas, gotas. Toma foto de la caja." kinds={['medicamento']} addKind="medicamento" data={data} />
-      <HealthSection icon="cita" title="Veterinario" empty="Anota cada cita y guarda tu veterinaria de confianza." kinds={['veterinario']} addKind="veterinario" data={data} />
       <HealthSection
         icon="sintoma"
         title="Novedades o comportamiento inusual"
@@ -776,7 +767,5 @@ const s = StyleSheet.create({
     borderRadius: 17,
     backgroundColor: colors.blue,
   },
-  reminder: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  remove: { paddingHorizontal: 10, height: 32, borderRadius: 16, backgroundColor: '#FFFFFF', justifyContent: 'center' },
   healthIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
 });
