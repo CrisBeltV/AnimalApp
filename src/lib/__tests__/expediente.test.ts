@@ -1,4 +1,4 @@
-import { activeTreatments, entryDetail, entryTitle, expedienteEntries, lastVaccine, profileLines } from '../expediente';
+import { activeTreatments, entryDetail, entryTitle, expedienteEntries, lastVaccine, previewRows, profileLines } from '../expediente';
 import type { Entry } from '../types';
 
 function entry(partial: Partial<Entry> & Pick<Entry, 'kind' | 'at'>): Entry {
@@ -86,5 +86,23 @@ describe('prevención y tratamientos en curso', () => {
       entry({ kind: 'medicamento', at: 4, fields: { nombre: 'C' } }),
     ];
     expect(activeTreatments(list, now).map((e) => e.fields?.nombre)).toEqual(['A']);
+  });
+});
+
+describe('previewRows', () => {
+  it('muestra la fecha y solo lo que se llenó, con su nombre', () => {
+    const rows = previewRows(
+      entry({ kind: 'medicamento', at: new Date(2026, 5, 1, 12).getTime(), fields: { nombre: 'Amoxicilina', dosis: '1 tableta', inicio: '01/06/2026' } }),
+    );
+    expect(rows).toEqual([
+      { label: 'Fecha', value: '01/06/2026' },
+      { label: 'Cantidad o dosis', value: '1 tableta' },
+      { label: 'Fecha de inicio', value: '01/06/2026' },
+    ]);
+  });
+
+  it('en una cita lista veterinaria, doctor y próxima cita', () => {
+    const rows = previewRows(entry({ kind: 'veterinario', at: 1, fields: { veterinaria: 'Patitas', proxima: '15/12/2026', vetId: 'v1', tipo: 'control' } }));
+    expect(rows.map((r) => r.label)).toEqual(['Fecha', 'Veterinaria', 'Próxima cita']);
   });
 });

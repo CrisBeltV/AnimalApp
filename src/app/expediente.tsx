@@ -10,7 +10,7 @@ import type { ExpFilter } from '../lib/expediente';
 import { shareExpediente } from '../lib/expedienteShare';
 import { KIND_INFO } from '../lib/game';
 import { formatDate } from '../lib/health';
-import { newEntry, openEntry } from '../lib/routes';
+import { newEntry } from '../lib/routes';
 import { useAuth } from '../lib/auth';
 import { useStore } from '../lib/store';
 import { colors } from '../lib/theme';
@@ -18,7 +18,7 @@ import type { Entry, EntryKind } from '../lib/types';
 
 const NEW: { kind: EntryKind; label: string }[] = [
   { kind: 'veterinario', label: 'Consulta' },
-  { kind: 'vacuna', label: 'Vacuna o desparasitación' },
+  { kind: 'vacuna', label: 'Prevención' },
   { kind: 'medicamento', label: 'Tratamiento' },
   { kind: 'documento', label: 'Documento' },
 ];
@@ -144,7 +144,7 @@ function Row({ entry, checked, onPress }: { entry: Entry; checked?: boolean; onP
   const detail = entryDetail(entry);
   const docs = entry.files?.length ?? 0;
   return (
-    <Pressable accessibilityState={checked === undefined ? undefined : { checked }} onPress={onPress ?? (() => openEntry(entry))} style={s.row}>
+    <Pressable accessibilityState={checked === undefined ? undefined : { checked }} onPress={onPress ?? (() => router.push({ pathname: '/vista', params: { id: entry.id } }))} style={s.row}>
       {checked !== undefined && (
         <View style={[s.box, checked && { backgroundColor: colors.accent, borderColor: colors.accent }]}>
           {checked ? <T.Black style={{ color: '#FFFFFF', fontSize: 14 }}>✓</T.Black> : null}

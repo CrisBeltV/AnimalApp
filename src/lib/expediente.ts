@@ -1,4 +1,4 @@
-import { formatDate, parseDate } from './health';
+import { FICHAS, formatDate, parseDate } from './health';
 import type { ClinicalProfile, Entry, Pet } from './types';
 
 // El expediente junta lo que tiene una historia clínica veterinaria: consultas, vacunas,
@@ -135,4 +135,34 @@ export function lastVaccine(entries: Entry[]): Entry | undefined {
   return entries
     .filter((e) => e.kind === 'vacuna' && (!e.fields?.categoria || e.fields.categoria === 'vacuna'))
     .sort((a, b) => b.at - a.at)[0];
+}
+
+const VISIT_LABELS: [string, string][] = [
+  ['veterinaria', 'Veterinaria'],
+  ['doctor', 'Doctor'],
+  ['direccion', 'Dirección'],
+  ['ubicacion', 'Ubicación'],
+  ['telefono', 'Teléfono'],
+  ['motivo', 'Motivo'], // citas viejas
+  ['proxima', 'Próxima cita'],
+  ['nota', 'Lo que dijo el veterinario'],
+];
+
+const DOC_LABELS: [string, string][] = [['nota', 'Notas']];
+
+// Datos de un registro para la vista previa: solo lo que se llenó, con su nombre y en orden.
+export function previewRows(e: Entry): { label: string; value: string }[] {
+  const f = e.fields ?? {};
+  const known: [string, string][] =
+    e.kind === 'vacuna'
+      ? FICHAS.vacuna.fields.map((x) => [x.key, x.label])
+      : e.kind === 'medicamento'
+        ? FICHAS.medicamento.fields.map((x) => [x.key, x.label])
+        : e.kind === 'documento'
+          ? DOC_LABELS
+          : VISIT_LABELS;
+  const rows = known.filter(([k]) => f[k] && k !== 'nombre').map(([k, label]) => ({ label, value: f[k] }));
+  // Registros viejos que solo guardaron una nota.
+  if (!e.fields && e.note) rows.push({ label: 'Nota', value: e.note });
+  return [{ label: 'Fecha', value: formatDate(e.at) }, ...rows];
 }

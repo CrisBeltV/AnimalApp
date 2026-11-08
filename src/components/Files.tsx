@@ -11,7 +11,17 @@ import { Button, T } from './ui';
 
 // Documentos de un registro: fotos y PDF (fórmulas, radiografías, exámenes).
 // Un cuadro con "+" para agregar, y cada documento abre para verlo, compartirlo o quitarlo.
-export function Files({ files, onChange, photoOnly }: { files: Attachment[]; onChange: (f: Attachment[]) => void; photoOnly?: boolean }) {
+export function Files({
+  files,
+  onChange,
+  photoOnly,
+  readOnly,
+}: {
+  files: Attachment[];
+  onChange: (f: Attachment[]) => void;
+  photoOnly?: boolean;
+  readOnly?: boolean; // solo ver y compartir: sin agregar ni quitar
+}) {
   const [adding, setAdding] = useState(false);
   const [open, setOpen] = useState<Attachment | null>(null);
   const [problem, setProblem] = useState('');
@@ -45,7 +55,7 @@ export function Files({ files, onChange, photoOnly }: { files: Attachment[]; onC
             )}
           </Pressable>
         ))}
-        {!(photoOnly && files.length > 0) && (
+        {!readOnly && !(photoOnly && files.length > 0) && (
           <Pressable accessibilityLabel={photoOnly ? 'Agregar foto' : 'Agregar documento'} onPress={() => setAdding(true)} style={[s.tile, s.add]}>
             <Icon name="mas" size={30} color={colors.accent} />
           </Pressable>
@@ -77,6 +87,7 @@ export function Files({ files, onChange, photoOnly }: { files: Attachment[]; onC
               )}
               <T.Muted style={{ fontSize: 12, textAlign: 'center' }}>{[open.name, sizeLabel(open.size)].filter(Boolean).join(' · ')}</T.Muted>
               {Platform.OS !== 'web' && <Button label={open.type === 'pdf' ? 'Abrir o compartir' : 'Compartir'} onPress={() => share(open)} />}
+              {!readOnly && (
               <Button
                 label="Quitar"
                 kind="lost"
@@ -85,6 +96,7 @@ export function Files({ files, onChange, photoOnly }: { files: Attachment[]; onC
                   setOpen(null);
                 }}
               />
+              )}
             </Pressable>
           )}
         </Pressable>
