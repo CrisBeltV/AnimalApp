@@ -2,11 +2,12 @@ import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import { DeleteEntry, Input, ProviderPicker, ReminderSheet, finish } from '../components/form';
+import { Chips, DeleteEntry, Input, ProviderPicker, ReminderSheet, finish } from '../components/form';
 import type { RemindTarget } from '../components/form';
 import { Files } from '../components/Files';
 import { BackHeader, Button, Card, T, soon } from '../components/ui';
 import { KIND_INFO } from '../lib/game';
+import { PREVENTION_TYPES } from '../lib/expediente';
 import { deleteFiles } from '../lib/files';
 import { FICHAS, fichaKind, formatDate, parseDate } from '../lib/health';
 import { foodStatus } from '../lib/game';
@@ -146,6 +147,8 @@ export default function Ficha() {
           <Files files={files} onChange={setFiles} />
           <Button label="Leer los datos de las fotos" kind="secondary" disabled={files.length === 0} onPress={reading} />
         </Card>
+
+        {vaccine && <Chips options={PREVENTION_TYPES} value={values.categoria ?? 'vacuna'} onChange={set('categoria')} />}
 
         <T.Muted>Escribe los datos. Los marcados con * son necesarios.</T.Muted>
         {fields.map((f, i) => (

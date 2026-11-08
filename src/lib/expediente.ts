@@ -1,4 +1,4 @@
-import { formatDate } from './health';
+import { formatDate, parseDate } from './health';
 import type { ClinicalProfile, Entry, Pet } from './types';
 
 // El expediente junta lo que tiene una historia clínica veterinaria: consultas, vacunas,
@@ -8,7 +8,7 @@ export type ExpFilter = 'todo' | 'consulta' | 'vacuna' | 'tratamiento' | 'docume
 export const EXP_FILTERS: { id: ExpFilter; label: string }[] = [
   { id: 'todo', label: 'Todo' },
   { id: 'consulta', label: 'Consultas' },
-  { id: 'vacuna', label: 'Vacunas' },
+  { id: 'vacuna', label: 'Prevención' },
   { id: 'tratamiento', label: 'Tratamientos' },
   { id: 'documento', label: 'Documentos' },
 ];
@@ -62,7 +62,7 @@ export function entryTitle(e: Entry): string {
     case 'veterinario':
       return typeLabel(CONSULT_TYPES, f) ? `Consulta · ${typeLabel(CONSULT_TYPES, f)}` : 'Consulta';
     case 'vacuna':
-      return f.nombre ? `Vacuna · ${f.nombre}` : 'Vacuna';
+      return `${labelOf(PREVENTION_TYPES, f.categoria) ?? 'Vacuna'}${f.nombre ? ` · ${f.nombre}` : ''}`;
     case 'medicamento':
       return f.nombre || e.note || 'Tratamiento';
     case 'documento':
@@ -113,4 +113,26 @@ export function profileLines(pet: Pet, clinical: ClinicalProfile | undefined, we
     conditions: c.conditions || undefined,
     empty: !c.sex && !c.neutered && !c.microchip && !c.marks && !c.allergies && !c.conditions,
   };
+}
+
+export const PREVENTION_TYPES = [
+  { id: 'vacuna', label: 'Vacuna' },
+  { id: 'desparasitacion', label: 'Desparasitante' },
+  { id: 'antiparasitario', label: 'Antipulgas y garrapatas' },
+];
+
+// Tratamientos que siguen en curso: tienen fecha de fin y todavía no pasó.
+export function activeTreatments(entries: Entry[], now: number): Entry[] {
+  const today = new Date(now).setHours(0, 0, 0, 0);
+  return entries.filter((e) => {
+    const end = e.kind === 'medicamento' ? parseDate(e.fields?.fin) : null;
+    return end !== null && end >= today;
+  });
+}
+
+// La vacuna más reciente (los desparasitantes y antiparasitarios no cuentan).
+export function lastVaccine(entries: Entry[]): Entry | undefined {
+  return entries
+    .filter((e) => e.kind === 'vacuna' && (!e.fields?.categoria || e.fields.categoria === 'vacuna'))
+    .sort((a, b) => b.at - a.at)[0];
 }

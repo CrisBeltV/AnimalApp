@@ -14,8 +14,8 @@ export type Field = {
 };
 
 export const VACUNA_FIELDS: Field[] = [
-  { key: 'nombre', label: 'Nombre de la vacuna', placeholder: 'Rabia, Polivalente, Triple felina', required: true },
-  { key: 'fecha', label: 'Fecha de vacunación', placeholder: 'DD/MM/AAAA', required: true, date: true },
+  { key: 'nombre', label: 'Nombre', placeholder: 'Rabia, Triple felina, Drontal, Nexgard…', required: true },
+  { key: 'fecha', label: 'Fecha de aplicación', placeholder: 'DD/MM/AAAA', required: true, date: true },
   { key: 'proxima', label: 'Próxima dosis o refuerzo', placeholder: 'DD/MM/AAAA', date: true, remind: 'Próxima dosis' },
   { key: 'laboratorio', label: 'Laboratorio', placeholder: 'Nombre del fabricante' },
   { key: 'lote', label: 'Lote', placeholder: 'Número de lote del sticker' },
@@ -26,7 +26,7 @@ export const VACUNA_FIELDS: Field[] = [
 ];
 
 export const MEDICAMENTO_FIELDS: Field[] = [
-  { key: 'nombre', label: 'Nombre del tratamiento o medicamento', placeholder: 'Desparasitante, antibiótico…', required: true },
+  { key: 'nombre', label: 'Nombre del tratamiento o medicamento', placeholder: 'Antibiótico, antiinflamatorio…', required: true },
   { key: 'dosis', label: 'Cantidad o dosis', placeholder: '1 tableta, 5 gotas, 2 ml', required: true },
   { key: 'cadaHoras', label: 'Cada cuántas horas', placeholder: '8', number: true },
   { key: 'inicio', label: 'Fecha de inicio', placeholder: 'DD/MM/AAAA', required: true, date: true },

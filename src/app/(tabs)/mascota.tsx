@@ -33,6 +33,7 @@ import {
 } from '../../lib/game';
 import { kg } from '../../lib/format';
 import { dailyKcal, dayNutrition } from '../../lib/foods';
+import { lastVaccine } from '../../lib/expediente';
 import { formatDate } from '../../lib/health';
 import { newEntry, openEntry } from '../../lib/routes';
 import { useStore } from '../../lib/store';
@@ -132,7 +133,7 @@ function Todo({ data, now, onFilter }: { data: AppData; now: number; onFilter: (
   const minutes = weekMinutes(data.entries, now)[dayIndex(now)];
   const meals = todayEntries(data.entries, now, 'comida').length;
   const weight = lastWeight(data.entries);
-  const vaccine = data.entries.find((e) => e.kind === 'vacuna');
+  const vaccine = lastVaccine(data.entries);
   const moodText = m === 'feliz' ? 'está feliz' : m === 'normal' ? 'está en calma' : 'te extraña';
 
   return (
@@ -469,6 +470,10 @@ function Salud() {
       <T.Muted style={{ fontSize: 13 }}>La app guarda lo que anotas; el diagnóstico siempre es del veterinario.</T.Muted>
       <Pressable accessibilityLabel="Abrir el expediente" onPress={() => router.push('/expediente')} style={s.expediente}>
         <T.Body style={{ flex: 1, fontSize: 21 }}>📋  Expediente</T.Body>
+        <Icon name="chevronRight" size={22} color={colors.accent} strokeWidth={2.4} />
+      </Pressable>
+      <Pressable accessibilityLabel="Abrir tarjeta de emergencia" onPress={() => router.push('/tarjeta')} style={s.expediente}>
+        <T.Body style={{ flex: 1, fontSize: 21 }}>🚑  Tarjeta de emergencia</T.Body>
         <Icon name="chevronRight" size={22} color={colors.accent} strokeWidth={2.4} />
       </Pressable>
       <Pressable accessibilityLabel="Abrir novedades" onPress={() => router.push('/novedades')} style={s.expediente}>

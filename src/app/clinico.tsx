@@ -4,6 +4,7 @@ import { Image, ScrollView, StyleSheet, View } from 'react-native';
 import { Files } from '../components/Files';
 import { Chips, Input, finish } from '../components/form';
 import { BackHeader, Button, Card, T } from '../components/ui';
+import { activeTreatments, entryTitle } from '../lib/expediente';
 import { deleteFiles } from '../lib/files';
 import { useStore } from '../lib/store';
 import { colors } from '../lib/theme';
@@ -18,6 +19,7 @@ function chosen(c: ClinicalProfile): { label: string; value: string; alert?: boo
   if (c.marks) rows.push({ label: 'Color y señas', value: c.marks });
   if (c.allergies) rows.push({ label: 'Alergias', value: c.allergies, alert: true });
   if (c.conditions) rows.push({ label: 'Condiciones crónicas', value: c.conditions });
+  if (c.ownerPhone) rows.push({ label: 'Tu teléfono', value: c.ownerPhone });
   return rows;
 }
 
@@ -30,7 +32,7 @@ export default function Clinico() {
   const isNew = Object.keys(saved).length === 0;
   const [editing, setEditing] = useState(isNew);
   const [c, setC] = useState<ClinicalProfile>(saved);
-  const text = (k: 'microchip' | 'marks' | 'allergies' | 'conditions') => (v: string) => setC((x) => ({ ...x, [k]: v }));
+  const text = (k: 'microchip' | 'marks' | 'allergies' | 'conditions' | 'ownerPhone') => (v: string) => setC((x) => ({ ...x, [k]: v }));
 
   const save = () => {
     const clean = Object.fromEntries(Object.entries(c).map(([k, v]) => [k, typeof v === 'string' ? v.trim() : v]).filter(([, v]) => v)) as ClinicalProfile;
@@ -41,6 +43,7 @@ export default function Clinico() {
 
   if (!editing) {
     const rows = chosen(saved);
+    const treatments = activeTreatments(data.entries, Date.now());
     return (
       <View style={{ flex: 1, backgroundColor: colors.bg }}>
         <BackHeader title="Ficha clínica" subtitle={pet.name} />
@@ -53,8 +56,19 @@ export default function Clinico() {
                 <T.Black style={{ fontSize: 17, color: r.alert ? colors.lostText : colors.text }}>{r.value}</T.Black>
               </View>
             ))}
-            {rows.length === 0 && <T.Muted>Solo hay foto por ahora.</T.Muted>}
+            {rows.length === 0 && treatments.length === 0 && <T.Muted>Solo hay foto por ahora.</T.Muted>}
           </Card>
+          {treatments.length > 0 && (
+            <Card style={{ gap: 8 }}>
+              <T.Black>Tratamientos en curso</T.Black>
+              {treatments.map((t) => (
+                <T.Body key={t.id}>
+                  💊 {entryTitle(t)}
+                  {t.fields?.fin ? ` · hasta ${t.fields.fin}` : ''}
+                </T.Body>
+              ))}
+            </Card>
+          )}
           <Button label="Editar" kind="solid" onPress={() => setEditing(true)} />
         </ScrollView>
       </View>
@@ -89,6 +103,8 @@ export default function Clinico() {
         <Input field={{ key: 'marks', label: 'Color y señas', placeholder: 'Café con mancha blanca en el pecho' }} value={c.marks ?? ''} onChange={text('marks')} />
         <Input field={{ key: 'allergies', label: 'Alergias', placeholder: 'Medicamentos, alimentos, picaduras…', multiline: true }} value={c.allergies ?? ''} onChange={text('allergies')} />
         <Input field={{ key: 'conditions', label: 'Condiciones crónicas', placeholder: 'Displasia, epilepsia, soplo…', multiline: true }} value={c.conditions ?? ''} onChange={text('conditions')} />
+        <Input field={{ key: 'ownerPhone', label: 'Tu teléfono (opcional)', placeholder: '300 000 0000', number: true }} value={c.ownerPhone ?? ''} onChange={text('ownerPhone')} />
+        <T.Muted style={{ fontSize: 13 }}>Tu teléfono nunca se muestra. Solo sale en la tarjeta de emergencia si tú lo aceptas al compartir.</T.Muted>
         <Button label="Guardar" kind="solid" onPress={save} />
       </ScrollView>
     </View>

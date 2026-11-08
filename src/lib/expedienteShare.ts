@@ -2,6 +2,7 @@ import { File, Paths } from 'expo-file-system';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 
+import { emergencyHtml } from './emergencyCard';
 import { expedienteHtml } from './expedienteHtml';
 import type { ShareAssets } from './expedienteHtml';
 import { supabase } from './supabase';
@@ -42,10 +43,29 @@ export async function shareExpediente(data: AppData, entries: Entry[], userId?: 
     }
   }
 
-  const { uri } = await Print.printToFileAsync({ html: expedienteHtml(data, entries, assets), width: 612, height: 792 });
-  const name = `Expediente-${(data.pet?.name ?? 'mascota').replace(/[^\p{L}\p{N}]+/gu, '-')}.pdf`;
+  await sharePdf(expedienteHtml(data, entries, assets), `Expediente-${slug(data)}.pdf`, 'Compartir expediente');
+  return { unlinked };
+}
+
+// Tarjeta de emergencia en una hoja. Los teléfonos solo salen si el dueño lo aceptó.
+export async function shareEmergencyCard(data: AppData, withPhones: boolean): Promise<void> {
+  const photo = data.clinical?.photo;
+  let src: string | undefined;
+  if (photo) {
+    try {
+      src = `data:image/jpeg;base64,${await new File(photo.uri).base64()}`;
+    } catch {
+      src = undefined;
+    }
+  }
+  await sharePdf(emergencyHtml(data, src, withPhones), `Emergencia-${slug(data)}.pdf`, 'Compartir tarjeta de emergencia');
+}
+
+const slug = (data: AppData) => (data.pet?.name ?? 'mascota').replace(/[^\p{L}\p{N}]+/gu, '-');
+
+async function sharePdf(html: string, name: string, dialogTitle: string) {
+  const { uri } = await Print.printToFileAsync({ html, width: 612, height: 792 });
   const dest = new File(Paths.cache, name);
   new File(uri).copy(dest, { overwrite: true });
-  await Sharing.shareAsync(dest.uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf', dialogTitle: 'Compartir expediente' });
-  return { unlinked };
+  await Sharing.shareAsync(dest.uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf', dialogTitle });
 }

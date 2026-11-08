@@ -1,4 +1,4 @@
-import { entryDetail, entryTitle, expedienteEntries, profileLines } from '../expediente';
+import { activeTreatments, entryDetail, entryTitle, expedienteEntries, lastVaccine, profileLines } from '../expediente';
 import type { Entry } from '../types';
 
 function entry(partial: Partial<Entry> & Pick<Entry, 'kind' | 'at'>): Entry {
@@ -60,5 +60,31 @@ describe('profileLines', () => {
 
   it('sin ficha queda vacío', () => {
     expect(profileLines(pet, undefined).empty).toBe(true);
+  });
+});
+
+describe('prevención y tratamientos en curso', () => {
+  const now = new Date(2026, 10, 8, 10).getTime();
+
+  it('titula desparasitantes y antipulgas aparte de las vacunas', () => {
+    expect(entryTitle(entry({ kind: 'vacuna', at: 1, fields: { categoria: 'desparasitacion', nombre: 'Drontal' } }))).toBe('Desparasitante · Drontal');
+    expect(entryTitle(entry({ kind: 'vacuna', at: 1, fields: { nombre: 'Rabia' } }))).toBe('Vacuna · Rabia');
+  });
+
+  it('la última vacuna no cuenta los desparasitantes', () => {
+    const list = [
+      entry({ kind: 'vacuna', at: 1, fields: { nombre: 'Rabia' } }),
+      entry({ kind: 'vacuna', at: 9, fields: { categoria: 'antiparasitario', nombre: 'Nexgard' } }),
+    ];
+    expect(lastVaccine(list)?.fields?.nombre).toBe('Rabia');
+  });
+
+  it('solo hay tratamientos en curso si la fecha de fin no pasó', () => {
+    const list = [
+      entry({ kind: 'medicamento', at: 2, fields: { nombre: 'A', fin: '20/11/2026' } }),
+      entry({ kind: 'medicamento', at: 3, fields: { nombre: 'B', fin: '01/10/2026' } }),
+      entry({ kind: 'medicamento', at: 4, fields: { nombre: 'C' } }),
+    ];
+    expect(activeTreatments(list, now).map((e) => e.fields?.nombre)).toEqual(['A']);
   });
 });

@@ -196,6 +196,7 @@ export type ClinicalProfile = {
   allergies?: string;
   conditions?: string; // condiciones crónicas
   photo?: Attachment; // foto de la mascota
+  ownerPhone?: string; // solo se comparte si el dueño lo decide
 };
 
 export type AppData = {

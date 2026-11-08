@@ -18,7 +18,7 @@ import type { Entry, EntryKind } from '../lib/types';
 
 const NEW: { kind: EntryKind; label: string }[] = [
   { kind: 'veterinario', label: 'Consulta' },
-  { kind: 'vacuna', label: 'Vacuna' },
+  { kind: 'vacuna', label: 'Vacuna o desparasitación' },
   { kind: 'medicamento', label: 'Tratamiento' },
   { kind: 'documento', label: 'Documento' },
 ];

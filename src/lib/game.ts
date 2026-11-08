@@ -422,7 +422,6 @@ export const GROOMING = [
   { id: 'bano', label: 'Baño', icon: '🛁' },
   { id: 'unas', label: 'Uñas', icon: '✂️' },
   { id: 'peluqueria', label: 'Peluquería', icon: '💇' },
-  { id: 'desparasitacion', label: 'Desparasitación', icon: '💊' },
   { id: 'oidos', label: 'Limpieza de oídos', icon: '👂' },
   { id: 'otro', label: 'Otro', icon: '✨' },
 ];
