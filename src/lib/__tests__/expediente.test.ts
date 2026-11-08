@@ -35,6 +35,11 @@ describe('expediente', () => {
     expect(entryTitle(entries[1])).toBe('Vacuna · Rabia');
   });
 
+  it('con "Otro" muestra lo que escribió el dueño', () => {
+    expect(entryTitle(entry({ kind: 'veterinario', at: 1, fields: { tipo: 'otro', tipoOtro: 'Control dental' } }))).toBe('Consulta · Control dental');
+    expect(entryTitle(entry({ kind: 'documento', at: 1, fields: { tipo: 'otro', tipoOtro: 'Biopsia' } }))).toBe('Biopsia');
+  });
+
   it('resume con lo que haya', () => {
     expect(entryDetail(entry({ kind: 'medicamento', at: 1, fields: { dosis: '1 tableta', cadaHoras: '8', fin: '10/12/2026' } }))).toBe(
       '1 tableta · cada 8 h · hasta 10/12/2026',

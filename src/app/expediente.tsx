@@ -5,10 +5,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon } from '../components/Icon';
 import { BackHeader, Button, T } from '../components/ui';
-import { EXP_FILTERS, entryDetail, entryTitle, expedienteEntries, profileLines } from '../lib/expediente';
+import { EXP_FILTERS, entryDetail, entryTitle, expedienteEntries } from '../lib/expediente';
 import type { ExpFilter } from '../lib/expediente';
 import { shareExpediente } from '../lib/expedienteShare';
-import { KIND_INFO, lastWeight } from '../lib/game';
+import { KIND_INFO } from '../lib/game';
 import { formatDate } from '../lib/health';
 import { newEntry, openEntry } from '../lib/routes';
 import { useAuth } from '../lib/auth';
@@ -31,12 +31,11 @@ export default function Expediente() {
   const [filter, setFilter] = useState<ExpFilter>('todo');
   const [adding, setAdding] = useState(false);
   const { userId } = useAuth();
-  // Al compartir, cada registro lleva una casilla; empiezan todas marcadas.
+  // Al compartir, cada registro lleva una casilla; empieza sin ninguna marcada.
   const [picked, setPicked] = useState<string[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
   const list = expedienteEntries(data.entries, filter);
-  const profile = profileLines(pet, data.clinical, lastWeight(data.entries));
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -45,7 +44,7 @@ export default function Expediente() {
         subtitle={pet.name}
         right={
           Platform.OS !== 'web' && !picked && list.length > 0 ? (
-            <Pressable accessibilityLabel="Compartir expediente" onPress={() => (setNotice(''), setPicked(list.map((e) => e.id)))} style={s.share}>
+            <Pressable accessibilityLabel="Compartir expediente" onPress={() => (setNotice(''), setPicked([]))} style={s.share}>
               <T.Black style={{ fontSize: 14, color: colors.accent }}>Compartir</T.Black>
             </Pressable>
           ) : null
@@ -71,14 +70,9 @@ export default function Expediente() {
       </View>
 
       <ScrollView contentContainerStyle={[s.page, { paddingBottom: insets.bottom + 110 }]}>
-        <Pressable accessibilityLabel="Editar ficha clínica" onPress={() => router.push('/clinico')} style={s.profile}>
-          <View style={{ flex: 1, gap: 2 }}>
-            <T.Black>{profile.empty ? 'Completar la ficha clínica' : profile.basics}</T.Black>
-            {profile.empty && <T.Muted style={{ fontSize: 13 }}>Sexo, microchip, alergias y condiciones</T.Muted>}
-            {profile.allergies ? <T.Bold style={{ fontSize: 14, color: colors.lostText }}>Alergias: {profile.allergies}</T.Bold> : null}
-            {profile.conditions ? <T.Bold style={{ fontSize: 14 }}>Condiciones: {profile.conditions}</T.Bold> : null}
-          </View>
-          <Icon name="chevronRight" size={20} color={colors.textMuted} />
+        <Pressable accessibilityLabel="Abrir ficha clínica" onPress={() => router.push('/clinico')} style={s.profile}>
+          <T.Body style={{ flex: 1, fontSize: 20 }}>{pet.name}</T.Body>
+          <Icon name="chevronRight" size={22} color={colors.accent} strokeWidth={2.4} />
         </Pressable>
         {notice ? <T.Muted style={{ fontSize: 13, marginBottom: 6 }}>{notice}</T.Muted> : null}
         {list.length === 0 && <T.Muted style={{ textAlign: 'center', marginTop: 40 }}>Aún no hay registros. Toca + para empezar.</T.Muted>}
@@ -187,7 +181,7 @@ const s = StyleSheet.create({
     borderColor: colors.blueOutline,
     justifyContent: 'center',
   },
-  profile: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 14, borderRadius: 20, backgroundColor: colors.blue, marginTop: 4, marginBottom: 6 },
+  profile: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 60, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 20, backgroundColor: colors.blue, marginTop: 4, marginBottom: 6 },
   share: { height: 38, paddingHorizontal: 14, borderRadius: 19, backgroundColor: colors.blue, justifyContent: 'center' },
   bar: { flexDirection: 'row', gap: 10, paddingHorizontal: 16, paddingTop: 12, backgroundColor: colors.bg },
   box: { width: 24, height: 24, borderRadius: 7, borderWidth: 2, borderColor: colors.blueOutline, alignItems: 'center', justifyContent: 'center' },

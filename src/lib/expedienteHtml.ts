@@ -35,8 +35,10 @@ h1{font-size:22px;margin:0 0 4px}h3{font-size:15px;margin:0 0 4px;display:flex;j
 h3 span{font-weight:normal;color:#5B6676}p{font-size:13px;margin:2px 0}
 section{border-top:1px solid #E7EBF1;padding:10px 0;page-break-inside:avoid}
 img{max-width:100%;max-height:420px;margin-top:6px;border-radius:6px}
+img.pet{width:96px;height:96px;object-fit:cover;border-radius:48px;float:right;margin:0 0 8px 12px}
 .alert{color:#B0182D;font-weight:bold}.foot{margin-top:18px;font-size:11px;color:#5B6676}
 </style></head><body>
+${data.clinical?.photo && assets.images[data.clinical.photo.id] ? `<img class="pet" src="${assets.images[data.clinical.photo.id]}" alt="" />` : ''}
 <h1>Expediente de ${esc(pet.name)}</h1>
 <p>${esc(p.basics)}</p>
 ${data.ownerName ? `<p>Dueño: ${esc(data.ownerName)}</p>` : ''}

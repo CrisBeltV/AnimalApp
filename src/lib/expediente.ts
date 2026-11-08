@@ -38,6 +38,10 @@ export const DOC_TYPES = [
 
 const labelOf = (list: { id: string; label: string }[], id?: string) => list.find((x) => x.id === id)?.label;
 
+// Con "Otro" se muestra lo que el dueño escribió.
+export const typeLabel = (list: { id: string; label: string }[], f: Record<string, string> = {}) =>
+  f.tipo === 'otro' && f.tipoOtro ? f.tipoOtro : labelOf(list, f.tipo);
+
 export const isExpediente = (e: Entry) => GROUP[e.kind] !== undefined;
 
 // Del más reciente al más antiguo. "Documentos" incluye también los adjuntos de otros registros.
@@ -56,13 +60,13 @@ export function entryTitle(e: Entry): string {
   const f = e.fields ?? {};
   switch (e.kind) {
     case 'veterinario':
-      return labelOf(CONSULT_TYPES, f.tipo) ? `Consulta · ${labelOf(CONSULT_TYPES, f.tipo)}` : 'Consulta';
+      return typeLabel(CONSULT_TYPES, f) ? `Consulta · ${typeLabel(CONSULT_TYPES, f)}` : 'Consulta';
     case 'vacuna':
       return f.nombre ? `Vacuna · ${f.nombre}` : 'Vacuna';
     case 'medicamento':
       return f.nombre || e.note || 'Tratamiento';
     case 'documento':
-      return f.titulo || labelOf(DOC_TYPES, f.tipo) || 'Documento';
+      return f.titulo || typeLabel(DOC_TYPES, f) || 'Documento';
     default:
       return e.note ?? '';
   }
@@ -78,7 +82,7 @@ export function entryDetail(e: Entry): string {
     case 'medicamento':
       return [f.dosis, f.cadaHoras ? `cada ${f.cadaHoras} h` : '', f.fin ? `hasta ${f.fin}` : ''].filter(Boolean).join(' · ');
     case 'documento':
-      return [labelOf(DOC_TYPES, f.tipo) && f.titulo ? labelOf(DOC_TYPES, f.tipo) : '', f.nota].filter(Boolean).join(' · ');
+      return [typeLabel(DOC_TYPES, f) && f.titulo ? typeLabel(DOC_TYPES, f) : '', f.nota].filter(Boolean).join(' · ');
     default:
       return '';
   }

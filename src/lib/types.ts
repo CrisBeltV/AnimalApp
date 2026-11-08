@@ -195,6 +195,7 @@ export type ClinicalProfile = {
   marks?: string; // color y señas particulares
   allergies?: string;
   conditions?: string; // condiciones crónicas
+  photo?: Attachment; // foto de la mascota
 };
 
 export type AppData = {

@@ -27,6 +27,7 @@ export default function Emergencia() {
   const [useMine, setUseMine] = useState(true);
   const [place, setPlace] = useState('');
   const [note, setNote] = useState('');
+  const [other, setOther] = useState('');
   const [stay, setStay] = useState<boolean | null>(null);
   const [here] = useState(() => spotFor(`${Date.now()}`, 350));
 
@@ -42,7 +43,7 @@ export default function Emergencia() {
       petName: `${animal} ${label ?? 'en peligro'}`,
       title: `${animal} ${label ?? 'en peligro'}`,
       species,
-      description: note.trim() || 'Necesita ayuda urgente.',
+      description: [what.includes('otro') ? other.trim() : '', note.trim()].filter(Boolean).join('. ') || 'Necesita ayuda urgente.',
       situations: what,
       withMe: stay ?? undefined,
       place: finalPlace,
@@ -94,6 +95,17 @@ export default function Emergencia() {
             );
           })}
         </View>
+
+        {what.includes('otro') && (
+          <TextInput
+            value={other}
+            onChangeText={setOther}
+            placeholder="¿Qué está pasando?"
+            placeholderTextColor={colors.textMuted}
+            style={s.input}
+            accessibilityLabel="Otra situación"
+          />
+        )}
 
         <T.Black>¿Dónde está?</T.Black>
         <Pressable
@@ -161,7 +173,7 @@ export default function Emergencia() {
           {!vets.length ? <T.Muted style={{ fontSize: 12 }}>Ejemplos. Guarda tu veterinaria con teléfono en Salud para verla aquí.</T.Muted> : null}
         </Card>
 
-        <Button label="Publicar emergencia" kind="solid" disabled={!what.length || !finalPlace} onPress={publish} />
+        <Button label="Publicar emergencia" kind="solid" disabled={!what.length || !finalPlace || (what.includes('otro') && !other.trim())} onPress={publish} />
         {!what.length ? <T.Muted style={{ fontSize: 12, textAlign: 'center' }}>Elige qué está pasando para publicar.</T.Muted> : null}
       </ScrollView>
     </View>

@@ -11,7 +11,7 @@ import { Button, T } from './ui';
 
 // Documentos de un registro: fotos y PDF (fórmulas, radiografías, exámenes).
 // Un cuadro con "+" para agregar, y cada documento abre para verlo, compartirlo o quitarlo.
-export function Files({ files, onChange }: { files: Attachment[]; onChange: (f: Attachment[]) => void }) {
+export function Files({ files, onChange, photoOnly }: { files: Attachment[]; onChange: (f: Attachment[]) => void; photoOnly?: boolean }) {
   const [adding, setAdding] = useState(false);
   const [open, setOpen] = useState<Attachment | null>(null);
   const [problem, setProblem] = useState('');
@@ -20,7 +20,7 @@ export function Files({ files, onChange }: { files: Attachment[]; onChange: (f: 
     setAdding(false);
     setProblem('');
     const { added, rejected } = await pickFiles(source);
-    if (added.length) onChange([...files, ...added]);
+    if (added.length) onChange(photoOnly ? added.slice(-1) : [...files, ...added]);
     if (rejected.length) setProblem(`No se pudo guardar: ${rejected.join(', ')}. Cada archivo puede pesar hasta ${sizeLabel(MAX_BYTES)}.`);
   };
 
@@ -45,9 +45,11 @@ export function Files({ files, onChange }: { files: Attachment[]; onChange: (f: 
             )}
           </Pressable>
         ))}
-        <Pressable accessibilityLabel="Agregar documento" onPress={() => setAdding(true)} style={[s.tile, s.add]}>
-          <Icon name="mas" size={30} color={colors.accent} />
-        </Pressable>
+        {!(photoOnly && files.length > 0) && (
+          <Pressable accessibilityLabel={photoOnly ? 'Agregar foto' : 'Agregar documento'} onPress={() => setAdding(true)} style={[s.tile, s.add]}>
+            <Icon name="mas" size={30} color={colors.accent} />
+          </Pressable>
+        )}
       </View>
       {problem ? <T.Muted style={{ fontSize: 13, color: colors.lostText }}>{problem}</T.Muted> : null}
 
@@ -56,7 +58,7 @@ export function Files({ files, onChange }: { files: Attachment[]; onChange: (f: 
           <View style={s.sheet}>
             <Button label="Tomar foto" onPress={() => add('camara')} />
             <Button label="Elegir de la galería" kind="secondary" onPress={() => add('galeria')} />
-            <Button label="Elegir un PDF u otro archivo" kind="secondary" onPress={() => add('archivo')} />
+            {!photoOnly && <Button label="Elegir un PDF u otro archivo" kind="secondary" onPress={() => add('archivo')} />}
           </View>
         </Pressable>
       </Modal>

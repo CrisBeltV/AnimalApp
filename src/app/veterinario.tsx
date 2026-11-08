@@ -7,7 +7,7 @@ import type { RemindTarget } from '../components/form';
 import { Files } from '../components/Files';
 import { Icon } from '../components/Icon';
 import { BackHeader, Button, Card, T } from '../components/ui';
-import { CONSULT_TYPES } from '../lib/expediente';
+import { CONSULT_TYPES, typeLabel } from '../lib/expediente';
 import { deleteFiles } from '../lib/files';
 import { formatDate, parseDate } from '../lib/health';
 import type { Field } from '../lib/health';
@@ -25,7 +25,6 @@ const VET_FIELDS: Field[] = [
 
 const VISIT_FIELDS: Field[] = [
   { key: 'fecha', label: 'Fecha de la cita', placeholder: 'DD/MM/AAAA', required: true, date: true },
-  { key: 'motivo', label: 'Motivo de la cita', placeholder: 'Control, vacuna, malestar…' },
   { key: 'proxima', label: 'Próxima cita', placeholder: 'DD/MM/AAAA', date: true, remind: 'Próxima cita' },
   { key: 'nota', label: 'Lo que dijo el veterinario', placeholder: 'Diagnóstico, indicaciones…', multiline: true },
 ];
@@ -61,7 +60,9 @@ export default function Veterinario() {
   };
   const val = (k: string) => (values[k] ?? '').trim();
   const all = [...VET_FIELDS, ...VISIT_FIELDS];
-  const invalid = all.some((f) => (f.required && !val(f.key)) || (f.date && val(f.key) && parseDate(val(f.key)) === null));
+  const invalid =
+    all.some((f) => (f.required && !val(f.key)) || (f.date && val(f.key) && parseDate(val(f.key)) === null)) ||
+    (values.tipo === 'otro' && !val('tipoOtro'));
 
   const q = query.trim().toLowerCase();
   const results = q ? data.vets.filter((v) => v.name.toLowerCase().includes(q)) : [];
@@ -90,10 +91,10 @@ export default function Veterinario() {
     };
     const same = data.vets.find((v) => v.name.toLowerCase() === vet.name.toLowerCase());
     const id = saveVet({ ...vet, id: vet.id ?? same?.id });
-    const clean = Object.fromEntries(Object.entries({ ...values, vetId: id }).map(([k, v]) => [k, v.trim()]).filter(([, v]) => v));
+    const clean = Object.fromEntries(Object.entries({ ...values, vetId: id }).map(([k, v]) => [k, v.trim()]).filter(([k, v]) => v && !(k === 'tipoOtro' && values.tipo !== 'otro')));
     const day = parseDate(clean.fecha) ?? Date.now();
     const at = new Date(day).toDateString() === new Date().toDateString() ? Date.now() : day + 12 * 3600000;
-    const note = [clean.veterinaria, clean.doctor, clean.motivo].filter(Boolean).join(' · ');
+    const note = [clean.veterinaria, clean.doctor, typeLabel(CONSULT_TYPES, clean)].filter(Boolean).join(' · ');
     let entryId: string;
     if (editing) {
       updateEntry(editing.id, { fields: clean, note, at, files });
@@ -161,6 +162,9 @@ export default function Veterinario() {
         )}
         <T.Black style={{ color: colors.textMuted, marginTop: 6 }}>La cita</T.Black>
         <Chips options={CONSULT_TYPES} value={values.tipo} onChange={set('tipo')} />
+        {values.tipo === 'otro' && (
+          <Input field={{ key: 'tipoOtro', label: '¿Cuál?', placeholder: 'Esterilización, control dental…', required: true }} value={values.tipoOtro ?? ''} onChange={set('tipoOtro')} />
+        )}
         {VISIT_FIELDS.map((f) => (
           <Input key={f.key} field={f} value={values[f.key] ?? ''} onChange={set(f.key)} />
         ))}

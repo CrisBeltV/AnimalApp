@@ -27,7 +27,8 @@ async function linkFor(userId: string, id: string, uri: string): Promise<string 
 export async function shareExpediente(data: AppData, entries: Entry[], userId?: string | null): Promise<{ unlinked: number }> {
   const assets: ShareAssets = { images: {}, links: {} };
   let unlinked = 0;
-  for (const f of entries.flatMap((e) => e.files ?? [])) {
+  const photo = data.clinical?.photo;
+  for (const f of [...(photo ? [photo] : []), ...entries.flatMap((e) => e.files ?? [])]) {
     try {
       if (f.type === 'image') {
         assets.images[f.id] = `data:image/jpeg;base64,${await new File(f.uri).base64()}`;
