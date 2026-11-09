@@ -6,7 +6,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { KIND_INFO, WALK_TYPES, activityWord } from '../lib/game';
 import { useStore } from '../lib/store';
-import { openEntry } from '../lib/routes';
 import { colors, radius, softShadow, type } from '../lib/theme';
 import type { Entry, Species } from '../lib/types';
 import { Icon } from './Icon';
@@ -138,7 +137,7 @@ export function MenuRow({
   );
 }
 
-export function BackHeader({ title, subtitle, onBack }: { title: string; subtitle?: string; onBack?: () => void }) {
+export function BackHeader({ title, subtitle, onBack, right }: { title: string; subtitle?: string; onBack?: () => void; right?: ReactNode }) {
   const insets = useSafeAreaInsets();
   return (
     <View style={[styles.backHeader, { paddingTop: insets.top + 12 }]}>
@@ -155,6 +154,7 @@ export function BackHeader({ title, subtitle, onBack }: { title: string; subtitl
         </T.Display>
         {subtitle ? <T.Muted>{subtitle}</T.Muted> : null}
       </View>
+      {right}
     </View>
   );
 }
@@ -166,8 +166,7 @@ export function soon(title: string, text: string) {
 // Toca un registro para abrirlo y editarlo.
 // compact: fila más baja para la línea de tiempo; el agua y el peso muestran su valor junto al nombre.
 export function EntryRow({ entry, species, compact }: { entry: Entry; species: Species; compact?: boolean }) {
-  const info = KIND_INFO[entry.kind];
-  const label = entry.kind === 'paseo' ? activityWord(species) : info.label;
+  const info = KIND_INFO[entry.kind] ?? { label: String(entry.kind), icon: '📝', xp: 0 };  const label = entry.kind === 'paseo' ? activityWord(species) : info.label;
   const { data } = useStore();
   const park = data.parks.find((p) => p.id === entry.fields?.parqueId)?.name;
   const walkType = WALK_TYPES.find((w) => w.id === entry.fields?.tipo && w.id !== 'paseo')?.label;
@@ -181,7 +180,7 @@ export function EntryRow({ entry, species, compact }: { entry: Entry; species: S
           : (entry.note ?? '');
   const inline = compact && (entry.kind === 'agua' || entry.kind === 'peso');
   return (
-    <Pressable accessibilityHint="Abre el registro para editarlo" onPress={() => openEntry(entry)} style={[styles.entry, compact && styles.entryCompact]}>
+    <Pressable accessibilityHint="Abre el registro; desde ahí se puede editar" onPress={() => router.push({ pathname: '/vista', params: { id: entry.id } })} style={[styles.entry, compact && styles.entryCompact]}>
       <Text style={{ fontSize: compact ? 18 : 22 }}>{info.icon}</Text>
       <View style={{ flex: 1 }}>
         <T.Black style={{ fontSize: compact ? 14 : 15 }}>
@@ -195,7 +194,7 @@ export function EntryRow({ entry, species, compact }: { entry: Entry; species: S
         ) : null}
       </View>
       <View style={{ alignItems: 'flex-end' }}>
-        {entry.photos?.length ? <Icon name="camara" size={16} color={colors.textMuted} /> : null}
+        {entry.photos?.length || entry.files?.length ? <Icon name="camara" size={16} color={colors.textMuted} /> : null}
         <T.Black style={{ fontSize: compact ? 12 : 13, color: colors.accent }}>+{entry.xp} XP</T.Black>
         <T.Muted style={{ fontSize: compact ? 11 : 12 }}>{when(entry.at)}</T.Muted>
       </View>

@@ -11,7 +11,7 @@ import { NEIGHBORS } from '../lib/samples';
 import { useStore } from '../lib/store';
 import { colors, fonts, shadow, softShadow } from '../lib/theme';
 import { useNow } from '../lib/useNow';
-import { Text } from '../components/Text';
+import { Text, TextInput } from '../components/Text';
 
 const REASONS = ['Reporte falso', 'Está vendiendo mascotas', 'Mensajes ofensivos', 'Otro motivo'];
 
@@ -25,6 +25,7 @@ export default function Vecino() {
   const [report, setReport] = useState(false);
   const [reasons, setReasons] = useState<string[]>([]);
   const [sent, setSent] = useState(false);
+  const [otherReason, setOtherReason] = useState('');
 
   const mine = reports(now).filter((r) => r.by === nombre);
   const me = mine.some((r) => r.mine);
@@ -156,13 +157,23 @@ export default function Vecino() {
               onPress={() => setReasons(reasons.includes(x) ? reasons.filter((y) => y !== x) : [...reasons, x])}
             />
           ))}
+          {reasons.includes('Otro motivo') && (
+            <TextInput
+              value={otherReason}
+              onChangeText={setOtherReason}
+              placeholder="¿Cuál es el motivo?"
+              placeholderTextColor={colors.textMuted}
+              style={s.otherInput}
+              accessibilityLabel="Otro motivo"
+            />
+          )}
           <View style={{ flexDirection: 'row', gap: 10 }}>
             <Button label="Cancelar" kind="secondary" style={{ flex: 1 }} onPress={() => setReport(false)} />
             <Button
               label="Enviar"
               kind="lost"
               style={{ flex: 1 }}
-              disabled={!reasons.length}
+              disabled={!reasons.length || (reasons.includes('Otro motivo') && !otherReason.trim())}
               onPress={() => {
                 setReport(false);
                 setSent(true);
@@ -177,6 +188,7 @@ export default function Vecino() {
 
 const s = StyleSheet.create({
   page: { paddingHorizontal: 16, gap: 12, width: '100%', maxWidth: 560, alignSelf: 'center' },
+  otherInput: { minHeight: 48, borderRadius: 14, borderWidth: 1.5, borderColor: colors.grey, paddingHorizontal: 14, fontSize: 16, fontFamily: fonts.body, color: colors.body, backgroundColor: colors.card },
   verified: { paddingHorizontal: 12, height: 30, borderRadius: 15, backgroundColor: colors.foundSoft, justifyContent: 'center' },
   stats: { flexDirection: 'row', gap: 10 },
   stat: { flex: 1, backgroundColor: colors.card, borderRadius: 18, paddingVertical: 12, alignItems: 'center' },

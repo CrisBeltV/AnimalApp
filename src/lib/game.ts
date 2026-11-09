@@ -13,9 +13,10 @@ export const KIND_INFO: Record<EntryKind, { label: string; icon: string; xp: num
   paseo: { label: 'Paseo', icon: '🦮', xp: 0 }, // depende de los minutos
   peso: { label: 'Peso', icon: '⚖️', xp: 10 },
   deposicion: { label: 'Deposición', icon: '💩', xp: 5 },
-  medicamento: { label: 'Medicamento', icon: '💊', xp: 10 },
+  medicamento: { label: 'Tratamiento', icon: '💊', xp: 10 },
   vacuna: { label: 'Vacuna', icon: '💉', xp: 30 },
   veterinario: { label: 'Cita al veterinario', icon: '🩺', xp: 30 },
+  documento: { label: 'Documento', icon: '📄', xp: 10 },
   enfermedad: { label: 'Síntoma', icon: '🤒', xp: 5 },
   lesion: { label: 'Lesión', icon: '🩹', xp: 5 },
   novedad: { label: 'Novedad', icon: '⚠️', xp: 5 },
@@ -448,7 +449,6 @@ export const GROOMING = [
   { id: 'bano', label: 'Baño', icon: '🛁' },
   { id: 'unas', label: 'Uñas', icon: '✂️' },
   { id: 'peluqueria', label: 'Peluquería', icon: '💇' },
-  { id: 'desparasitacion', label: 'Desparasitación', icon: '💊' },
   { id: 'oidos', label: 'Limpieza de oídos', icon: '👂' },
   { id: 'otro', label: 'Otro', icon: '✨' },
 ];

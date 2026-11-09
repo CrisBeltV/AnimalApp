@@ -14,13 +14,11 @@ import { colors, fonts, radius } from '../lib/theme';
 import type { Entry, EntryKind } from '../lib/types';
 import { TextInput } from '../components/Text';
 
-const ITEMS: { kind: EntryKind; label?: string; icon: IconName }[] = [
+const ITEMS: { kind: EntryKind; label?: string; icon: IconName; route?: string }[] = [
   { kind: 'comida', label: 'Preparar plato', icon: 'comida' },
   { kind: 'agua', icon: 'agua' },
   { kind: 'peso', icon: 'cuerpo' },
-  { kind: 'medicamento', icon: 'medicamento' },
-  { kind: 'vacuna', icon: 'vacuna' },
-  { kind: 'veterinario', icon: 'cita' },
+  { kind: 'veterinario', label: 'Expediente', icon: 'salud', route: '/expediente' },
   { kind: 'novedad', label: 'Novedades', icon: 'sintoma' },
   { kind: 'paseo', icon: 'reloj' },
   { kind: 'higiene', label: 'Baño, uñas o peluquería', icon: 'cuerpo' },
@@ -36,7 +34,7 @@ const NUMBER: Partial<Record<EntryKind, { label: string; placeholder: string }>>
 };
 
 // Vacuna, medicamento, veterinario y novedades tienen su propia ventana (ver lib/routes).
-const OWN_SCREEN: EntryKind[] = ['vacuna', 'medicamento', 'veterinario', 'novedad', 'deposicion', 'enfermedad', 'lesion', 'paseo', 'peso', 'alimento', 'higiene', 'foto', 'animo', 'comida'];
+const OWN_SCREEN: EntryKind[] = ['vacuna', 'medicamento', 'veterinario', 'documento', 'novedad', 'deposicion', 'enfermedad', 'lesion', 'paseo', 'peso', 'alimento', 'higiene', 'foto', 'animo', 'comida'];
 
 const NOTE_HINT: Partial<Record<EntryKind, string>> = {
   comida: '150 g de concentrado',
@@ -175,7 +173,7 @@ export default function Registro() {
         <T.Black style={{ color: colors.textMuted }}>Registrar a mano</T.Black>
         <View style={s.grid}>
           {ITEMS.map((it) => (
-            <Pressable key={it.kind} onPress={() => pick(it.kind)} style={s.item}>
+            <Pressable key={it.kind} onPress={() => (it.route ? router.replace(it.route as never) : pick(it.kind))} style={s.item}>
               <View style={s.itemIcon}>
                 <Icon name={it.icon} size={22} />
               </View>

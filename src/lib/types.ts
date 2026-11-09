@@ -19,6 +19,7 @@ export type EntryKind =
   | 'medicamento'
   | 'vacuna'
   | 'veterinario'
+  | 'documento'
   | 'enfermedad'
   | 'lesion'
   | 'novedad'
@@ -27,6 +28,15 @@ export type EntryKind =
   | 'foto'
   | 'animo'
   | 'nota';
+
+// Documento adjunto a un registro: foto (JPEG) o PDF. La foto se achica al subirla; el PDF se guarda tal cual.
+export type Attachment = {
+  id: string;
+  uri: string;
+  type: 'image' | 'pdf';
+  name: string;
+  size?: number; // bytes
+};
 
 export type Entry = {
   id: string;
@@ -41,6 +51,8 @@ export type Entry = {
   fields?: Record<string, string>;
   // Fotos del carnet o de la caja (frente y reverso).
   photos?: string[];
+  // Documentos del expediente: fórmulas, radiografías, exámenes (foto o PDF).
+  files?: Attachment[];
   // Novedades o comportamiento inusual marcados.
   signs?: string[];
 };
@@ -183,11 +195,24 @@ export type Dish = { id: string; name: string; items: { id: string; g: number }[
 export type Lang = 'es' | 'en' | 'zh';
 
 // Lo que es de cada mascota. La mascota activa lo tiene en AppData; las demás, guardado en otherPets.
-export type PetProfile = Pick<AppData, 'pet' | 'entries' | 'activeWalkStart' | 'walkGoal' | 'routines' | 'unlocked' | 'reminders' | 'settings' | 'dishes'>;
+export type PetProfile = Pick<AppData, 'pet' | 'entries' | 'activeWalkStart' | 'walkGoal' | 'routines' | 'unlocked' | 'reminders' | 'settings' | 'dishes' | 'clinical'>;
+
+// Ficha clínica fija de la mascota: lo que cualquier veterinaria pregunta primero.
+export type ClinicalProfile = {
+  sex?: 'hembra' | 'macho';
+  neutered?: 'si' | 'no';
+  microchip?: string;
+  marks?: string; // color y señas particulares
+  allergies?: string;
+  conditions?: string; // condiciones crónicas
+  photo?: Attachment; // foto de la mascota
+  ownerPhone?: string; // solo se comparte si el dueño lo decide
+};
 
 export type AppData = {
   ownerName: string;
   pet: Pet | null;
+  clinical?: ClinicalProfile;
   entries: Entry[];
   reports: Report[];
   activeWalkStart: number | null;

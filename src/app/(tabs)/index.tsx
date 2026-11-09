@@ -7,7 +7,7 @@ import { AccountButton } from '../../components/AccountButton';
 import { BarrioMap } from '../../components/BarrioMap';
 import { Icon } from '../../components/Icon';
 import { PetDrawing } from '../../components/PetDrawing';
-import { Bar, MenuRow, T, soon } from '../../components/ui';
+import { Bar, Button, MenuRow, T, soon } from '../../components/ui';
 import {
   MISSION_XP,
   activityWord,
@@ -208,7 +208,15 @@ export default function Inicio() {
               </View>
             ))}
           </ScrollView>
-          <T.Muted style={{ fontSize: 12 }}>Se crean al guardar vacunas, medicamentos, citas, comidas y paseos.</T.Muted>
+          <Button
+            label="Editar"
+            kind="secondary"
+            onPress={() => {
+              setAlarms(false);
+              router.push('/recordatorios');
+            }}
+          />
+          <T.Muted style={{ fontSize: 12 }}>Se crean al guardar vacunas, tratamientos, citas, comidas y paseos.</T.Muted>
         </View>
       </Modal>
 

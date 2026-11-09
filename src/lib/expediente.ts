@@ -1,5 +1,6 @@
-import { FICHAS, formatDate, parseDate } from './health';
-import type { ClinicalProfile, Entry, Pet } from './types';
+import { GROOMING, MOODS, WALK_TYPES } from './game';
+import { FICHAS, SIGN_LABEL, formatDate, parseDate } from './health';
+import type { ClinicalProfile, Entry, Park, Pet, Provider } from './types';
 
 // El expediente junta lo que tiene una historia clínica veterinaria: consultas, vacunas,
 // tratamientos y documentos (radiografías, exámenes, fórmulas). Lo demás es cuidado diario.
@@ -150,19 +151,75 @@ const VISIT_LABELS: [string, string][] = [
 
 const DOC_LABELS: [string, string][] = [['nota', 'Notas']];
 
+export type PreviewCtx = { parks?: Park[]; providers?: Provider[] };
+type Row = { label: string; value: string };
+
+// Registros con hora (el resto se muestra solo con el día).
+const TIMED: Entry['kind'][] = ['paseo', 'peso', 'agua', 'comida', 'animo', 'novedad', 'deposicion', 'enfermedad', 'lesion', 'nota'];
+
+const pick = (f: Record<string, string>, list: [string, string][]): Row[] => list.filter(([k]) => f[k]).map(([k, label]) => ({ label, value: f[k] }));
+
 // Datos de un registro para la vista previa: solo lo que se llenó, con su nombre y en orden.
-export function previewRows(e: Entry): { label: string; value: string }[] {
+export function previewRows(e: Entry, ctx: PreviewCtx = {}): Row[] {
   const f = e.fields ?? {};
-  const known: [string, string][] =
-    e.kind === 'vacuna'
-      ? FICHAS.vacuna.fields.map((x) => [x.key, x.label])
-      : e.kind === 'medicamento'
-        ? FICHAS.medicamento.fields.map((x) => [x.key, x.label])
-        : e.kind === 'documento'
-          ? DOC_LABELS
-          : VISIT_LABELS;
-  const rows = known.filter(([k]) => f[k] && k !== 'nombre').map(([k, label]) => ({ label, value: f[k] }));
-  // Registros viejos que solo guardaron una nota.
-  if (!e.fields && e.note) rows.push({ label: 'Nota', value: e.note });
-  return [{ label: 'Fecha', value: formatDate(e.at) }, ...rows];
+  const time = new Date(e.at).toLocaleTimeString('es-CO', { hour: 'numeric', minute: '2-digit' });
+  const date: Row = { label: 'Fecha', value: TIMED.includes(e.kind) ? `${formatDate(e.at)} · ${time}` : formatDate(e.at) };
+  let rows: Row[];
+  switch (e.kind) {
+    case 'vacuna':
+    case 'medicamento':
+    case 'alimento':
+      rows = pick(f, FICHAS[e.kind].fields.filter((x) => x.key !== 'nombre').map((x) => [x.key, x.label]));
+      break;
+    case 'documento':
+      rows = pick(f, DOC_LABELS);
+      break;
+    case 'veterinario':
+      rows = pick(f, VISIT_LABELS);
+      break;
+    case 'novedad':
+    case 'deposicion':
+    case 'enfermedad':
+    case 'lesion':
+      rows = [
+        ...(e.signs?.length ? [{ label: 'Lo que notaste', value: e.signs.map((s) => SIGN_LABEL[s] ?? s).join(', ') }] : []),
+        ...pick(f, [['lesionDonde', 'Dónde'], ['nota', 'Otra cosa que notaste']]),
+      ];
+      break;
+    case 'paseo':
+      rows = [
+        ...(e.minutes ? [{ label: 'Duración', value: `${e.minutes} min` }] : []),
+        ...(f.tipo && f.tipo !== 'paseo' ? [{ label: 'Tipo', value: WALK_TYPES.find((w) => w.id === f.tipo)?.label ?? f.tipo }] : []),
+        ...(f.parqueId ? [{ label: 'Parque', value: ctx.parks?.find((p) => p.id === f.parqueId)?.name ?? '' }] : []),
+      ].filter((r) => r.value);
+      break;
+    case 'peso':
+      rows = [...(e.kg ? [{ label: 'Peso', value: `${String(e.kg).replace('.', ',')} kg` }] : []), ...pick(f, [['alto', 'Alto (cm)'], ['largo', 'Largo (cm)']])];
+      break;
+    case 'agua':
+      rows = e.ml ? [{ label: 'Cantidad', value: `${e.ml} ml` }] : [];
+      break;
+    case 'higiene': {
+      const tipos = (f.tipos ?? f.tipo ?? '').split(',').filter(Boolean);
+      const label = tipos.map((id) => (id === 'otro' && f.otro ? f.otro : GROOMING.find((g) => g.id === id)?.label)).filter(Boolean).join(', ');
+      rows = [
+        ...(label ? [{ label: 'Cuidados', value: label }] : []),
+        ...(f.peluqueriaId ? [{ label: 'Lo hizo', value: ctx.providers?.find((p) => p.id === f.peluqueriaId)?.name ?? '' }] : []),
+        ...pick(f, [['proxima', 'Próxima vez'], ['nota', 'Notas']]),
+      ].filter((r) => r.value);
+      break;
+    }
+    case 'animo': {
+      const mood = MOODS.find((m) => m.id === f.estado);
+      rows = [...(mood ? [{ label: 'Estado', value: `${mood.icon} ${mood.label}` }] : []), ...pick(f, [['nota', 'Notas']])];
+      break;
+    }
+    default:
+      rows = [];
+  }
+  // Lo que no tiene datos sueltos (comida, diario, foto, registros viejos) muestra su nota.
+  if (e.kind === 'comida' && e.note) rows.unshift({ label: 'Menú', value: e.note });
+  else if (rows.length === 0 && e.note) rows.push({ label: 'Nota', value: e.note });
+  else if (e.note && ['paseo', 'peso', 'agua', 'foto', 'nota'].includes(e.kind)) rows.push({ label: 'Nota', value: e.note });
+  return [date, ...rows];
 }

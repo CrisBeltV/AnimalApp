@@ -1,9 +1,10 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Icon } from '../components/Icon';
+import { Text } from '../components/Text';
 import { BackHeader, Button, T } from '../components/ui';
 import { EXP_FILTERS, entryDetail, entryTitle, expedienteEntries } from '../lib/expediente';
 import type { ExpFilter } from '../lib/expediente';

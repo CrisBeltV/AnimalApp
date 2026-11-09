@@ -13,6 +13,7 @@ function pathFor(kind: EntryKind) {
   if (kind === 'animo') return '/animo';
   if (kind === 'vacuna' || kind === 'medicamento') return '/ficha';
   if (kind === 'veterinario') return '/veterinario';
+  if (kind === 'documento') return '/documento';
   if (kind === 'novedad' || kind === 'deposicion' || kind === 'enfermedad' || kind === 'lesion') return '/novedad';
   return '/registro';
 }

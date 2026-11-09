@@ -106,3 +106,35 @@ describe('previewRows', () => {
     expect(rows.map((r) => r.label)).toEqual(['Fecha', 'Veterinaria', 'Próxima cita']);
   });
 });
+
+describe('previewRows de los demás registros', () => {
+  it('novedad: lo que se notó, dónde y la nota', () => {
+    const rows = previewRows(entry({ kind: 'novedad', at: 1, signs: ['cojera', 'vomito'], fields: { nota: 'Desde ayer' } }));
+    expect(rows.slice(1)).toEqual([
+      { label: 'Lo que notaste', value: 'Cojera, Vómito' },
+      { label: 'Otra cosa que notaste', value: 'Desde ayer' },
+    ]);
+  });
+
+  it('paseo: duración, tipo y parque', () => {
+    const rows = previewRows(entry({ kind: 'paseo', at: 1, minutes: 30, fields: { tipo: 'juego', parqueId: 'p1' } }), { parks: [{ id: 'p1', name: 'Villa Luz' }] });
+    expect(rows.slice(1)).toEqual([
+      { label: 'Duración', value: '30 min' },
+      { label: 'Tipo', value: 'Juego' },
+      { label: 'Parque', value: 'Villa Luz' },
+    ]);
+  });
+
+  it('higiene y ánimo', () => {
+    expect(previewRows(entry({ kind: 'higiene', at: 1, fields: { tipos: 'bano,otro', otro: 'Dientes', proxima: '01/12/2026' } })).slice(1)).toEqual([
+      { label: 'Cuidados', value: 'Baño, Dientes' },
+      { label: 'Próxima vez', value: '01/12/2026' },
+    ]);
+    expect(previewRows(entry({ kind: 'animo', at: 1, fields: { estado: 'feliz' } })).slice(1)[0].value).toContain('Feliz');
+  });
+
+  it('lo que no tiene datos sueltos muestra su nota', () => {
+    expect(previewRows(entry({ kind: 'comida', at: 1, note: '150 g de concentrado' })).slice(1)).toEqual([{ label: 'Menú', value: '150 g de concentrado' }]);
+    expect(previewRows(entry({ kind: 'nota', at: 1, note: 'Día tranquilo' })).slice(1)).toEqual([{ label: 'Nota', value: 'Día tranquilo' }]);
+  });
+});

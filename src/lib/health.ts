@@ -14,8 +14,8 @@ export type Field = {
 };
 
 export const VACUNA_FIELDS: Field[] = [
-  { key: 'nombre', label: 'Nombre de la vacuna', placeholder: 'Rabia, Polivalente, Triple felina', required: true },
-  { key: 'fecha', label: 'Fecha de vacunación', placeholder: 'DD/MM/AAAA', required: true, date: true },
+  { key: 'nombre', label: 'Nombre', placeholder: 'Rabia, Triple felina, Drontal, Nexgard…', required: true },
+  { key: 'fecha', label: 'Fecha de aplicación', placeholder: 'DD/MM/AAAA', required: true, date: true },
   { key: 'proxima', label: 'Próxima dosis o refuerzo', placeholder: 'DD/MM/AAAA', date: true, remind: 'Próxima dosis' },
   { key: 'laboratorio', label: 'Laboratorio', placeholder: 'Nombre del fabricante' },
   { key: 'lote', label: 'Lote', placeholder: 'Número de lote del sticker' },
@@ -26,7 +26,7 @@ export const VACUNA_FIELDS: Field[] = [
 ];
 
 export const MEDICAMENTO_FIELDS: Field[] = [
-  { key: 'nombre', label: 'Nombre del medicamento', placeholder: 'Desparasitante, antibiótico…', required: true },
+  { key: 'nombre', label: 'Nombre del tratamiento o medicamento', placeholder: 'Antibiótico, antiinflamatorio…', required: true },
   { key: 'dosis', label: 'Cantidad o dosis', placeholder: '1 tableta, 5 gotas, 2 ml', required: true },
   { key: 'cadaHoras', label: 'Cada cuántas horas', placeholder: '8', number: true },
   { key: 'inicio', label: 'Fecha de inicio', placeholder: 'DD/MM/AAAA', required: true, date: true },
@@ -35,8 +35,6 @@ export const MEDICAMENTO_FIELDS: Field[] = [
   { key: 'ingredientes', label: 'Ingredientes o principio activo', placeholder: 'Lo que dice la caja', multiline: true },
   { key: 'funciones', label: 'Para qué sirve', placeholder: 'Funciones o indicaciones', multiline: true, lookup: true },
   { key: 'contraindicaciones', label: 'Contraindicaciones', placeholder: 'Cuándo no darlo', multiline: true, lookup: true },
-  { key: 'presentacion', label: 'Presentación', placeholder: 'Tabletas, gotas, jarabe, inyección' },
-  { key: 'receto', label: 'Quién lo recetó', placeholder: 'Veterinaria o doctor' },
   { key: 'nota', label: 'Notas', placeholder: 'Darlo con comida, reacciones…', multiline: true },
 ];
 
@@ -61,22 +59,20 @@ export const ALIMENTO_FIELDS: Field[] = [
 export type FichaKind = 'vacuna' | 'medicamento' | 'alimento';
 
 // Cómo se ve cada ficha con fotos y vista previa.
-export const FICHAS: Record<FichaKind, { fields: Field[]; dateKey: string; newTitle: string; what: string; photosTitle: string; sides: string[] }> = {
+export const FICHAS: Record<FichaKind, { fields: Field[]; dateKey: string; newTitle: string; what: string; photosTitle: string }> = {
   vacuna: {
     fields: VACUNA_FIELDS,
     dateKey: 'fecha',
     newTitle: 'Nueva vacuna',
     what: 'Vacuna',
     photosTitle: 'Fotos del carnet de vacunación',
-    sides: ['Frente del carnet', 'Reverso del carnet'],
   },
   medicamento: {
     fields: MEDICAMENTO_FIELDS,
     dateKey: 'inicio',
-    newTitle: 'Nuevo medicamento',
-    what: 'Medicamento',
+    newTitle: 'Nuevo tratamiento',
+    what: 'Tratamiento',
     photosTitle: 'Fotos de la caja o el frasco',
-    sides: ['Frente de la caja', 'Reverso de la caja'],
   },
   alimento: {
     fields: ALIMENTO_FIELDS,
@@ -84,7 +80,6 @@ export const FICHAS: Record<FichaKind, { fields: Field[]; dateKey: string; newTi
     newTitle: 'Alimento nuevo',
     what: 'Alimento',
     photosTitle: 'Fotos de la bolsa o la lata',
-    sides: ['Frente del empaque', 'Reverso del empaque'],
   },
 };
 
